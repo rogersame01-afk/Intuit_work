@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRS Pricing Friction: TY24 vs TY25 (Apples-to-Apples)</title>
+<style>
+  :root {
+    --bg: #ffffff; --surface: #f8f9fa; --border: #dee2e6;
+    --text: #212529; --text-dim: #6c757d; --accent: #0969da;
+    --green: #1a7f37; --amber: #9a6700; --rose: #cf222e; --violet: #8250df;
+    --blue-bg: rgba(9,105,218,0.06); --green-bg: rgba(26,127,55,0.06);
+    --amber-bg: rgba(154,103,0,0.06); --rose-bg: rgba(207,34,46,0.06);
+    --violet-bg: rgba(130,80,223,0.06);
+    --ty24: #64748b; --ty25: #0969da;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem; line-height: 1.65;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 0.5rem; }
+  h2 {
+    font-size: 1.3rem; font-weight: 700; margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb;
+  }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: var(--accent); }
+  p { margin-bottom: 1rem; }
+  .dim { color: var(--text-dim); font-size: 0.85rem; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem; text-align: center;
+  }
+  .kpi .lbl {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin-bottom: 0.5rem;
+  }
+  .kpi .val { font-size: 1.5rem; font-weight: 700; }
+  .kpi .sub { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.3rem; }
+  .val-green { color: var(--green); }
+  .val-rose { color: var(--rose); }
+  .val-amber { color: var(--amber); }
+  .val-accent { color: var(--accent); }
+  .val-violet { color: var(--violet); }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 1rem;
+  }
+  th {
+    text-align: left; padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-dim); font-weight: 600; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+  }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #e9ecef; }
+  tr:last-child td { border-bottom: none; }
+  .r { text-align: right; font-variant-numeric: tabular-nums; }
+  .row-danger { background: rgba(207,34,46,0.05); }
+  .row-warning { background: rgba(154,103,0,0.05); }
+  .row-accent { background: rgba(9,105,218,0.05); }
+  .callout {
+    padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1rem 0;
+    border-left: 4px solid;
+  }
+  .callout-danger { background: var(--rose-bg); border-color: var(--rose); }
+  .callout-danger .callout-title { color: var(--rose); }
+  .callout-warning { background: var(--amber-bg); border-color: var(--amber); }
+  .callout-warning .callout-title { color: var(--amber); }
+  .callout-info { background: var(--blue-bg); border-color: var(--accent); }
+  .callout-info .callout-title { color: var(--accent); }
+  .callout-violet { background: var(--violet-bg); border-color: var(--violet); }
+  .callout-violet .callout-title { color: var(--violet); }
+  .callout-green { background: var(--green-bg); border-color: var(--green); }
+  .callout-green .callout-title { color: var(--green); }
+  .callout-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; }
+  .callout p { margin-bottom: 0; font-size: 0.85rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+  .stacked-bar { display: flex; height: 36px; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+  .stacked-seg { display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; color: #fff; }
+  .delta-up { color: var(--rose); font-weight: 700; }
+  .delta-down { color: var(--green); font-weight: 700; }
+  .delta-flat { color: var(--text-dim); font-weight: 600; }
+  .yoy-pair { display: flex; gap: 0.5rem; align-items: baseline; }
+  .yoy-pair .ty24 { font-size: 1rem; color: var(--ty24); font-weight: 600; }
+  .yoy-pair .arrow { color: var(--text-dim); font-size: 0.85rem; }
+  .yoy-pair .ty25 { font-size: 1.5rem; font-weight: 700; }
+  .legend { display: flex; gap: 1.5rem; margin: 0.5rem 0 1rem; font-size: 0.75rem; color: var(--text-dim); }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .toggle-group { display: flex; gap: 0; margin: 1rem 0; }
+  .toggle-btn {
+    padding: 0.5rem 1.25rem; font-size: 0.8rem; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+    color: var(--text-dim); transition: all 0.2s;
+  }
+  .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+  .toggle-btn:last-child { border-radius: 0 6px 6px 0; }
+  .toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .hidden { display: none; }
+  .source-tag { font-size: 0.65rem; color: var(--text-dim); margin-top: 1rem; }
+  .method-box {
+    background: #f0f4ff; border: 1px solid #c8d6f0; border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1rem 0; font-size: 0.82rem;
+  }
+  .method-box strong { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>PRS Pricing Friction: TY24 vs TY25</h1>
+<p class="subtitle">Apples-to-Apples Comparison &middot; Same 17 sub-types as the <a href="ty25_voc_cross_source_analysis.html">Cross-Source Analysis</a></p>
+<p class="dim">Survey bases: TY24 = 3.50M responses, TY25 = 3.41M responses.</p>
+
+<div class="method-box">
+  <strong>Classification method:</strong> This comparison uses the <strong>exact same 17 friction sub-type names</strong> from the original TY25 VoC Cross-Source Analysis — 5 for "Too Expensive," 7 for "Surprise / Transparency," and 5 for "Upselling Fatigue." No fuzzy matching. This ensures the YoY comparison measures the same signal, not a wider net. The <a href="ty25_prs_pricing_deep_dive.html">PRS deep-dive</a> used broader LIKE-based matching and found larger totals (205K value, 61K transparency) because it captured the long tail of related sub-types.
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ HEADLINE ═══════ -->
+<h2>Headline: The Conclusion Holds</h2>
+
+<div class="callout callout-danger">
+  <div class="callout-title">"Too Expensive" still dominates — 89% of classified pricing friction in both years</div>
+  <p>Using the same 17 sub-types: TY24 had 205K value friction points (93% of total). TY25 had 195K (89%). The original cross-source finding that pricing friction is overwhelmingly a value perception problem, not a transparency problem, is <strong>confirmed and stable across years</strong>. The transparency share grew from 3% to 5% — a real increase, but from a very small base.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ CATEGORY COMPARISON TABLE ═══════ -->
+<h2>Category Comparison</h2>
+<div class="legend">
+  <span><span class="legend-dot" style="background:var(--ty24)"></span>TY24</span>
+  <span><span class="legend-dot" style="background:var(--ty25)"></span>TY25</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Category</th>
+      <th class="r">TY24</th>
+      <th class="r">TY25</th>
+      <th class="r">&Delta; Vol.</th>
+      <th class="r">TY24 Share</th>
+      <th class="r">TY25 Share</th>
+      <th class="r">&Delta; Share</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="row-danger">
+      <td><strong>Too Expensive (Value)</strong></td>
+      <td class="r">205,133</td><td class="r">194,752</td>
+      <td class="r delta-down">&minus;5.1%</td>
+      <td class="r">93.0%</td><td class="r">89.3%</td>
+      <td class="r">&minus;3.7pp</td>
+    </tr>
+    <tr class="row-warning">
+      <td><strong>Surprise / Transparency</strong></td>
+      <td class="r">6,796</td><td class="r">10,805</td>
+      <td class="r delta-up">+59.0%</td>
+      <td class="r">3.1%</td><td class="r">5.0%</td>
+      <td class="r delta-up">+1.9pp</td>
+    </tr>
+    <tr class="row-accent">
+      <td><strong>Upselling Fatigue</strong></td>
+      <td class="r">8,694</td><td class="r">12,614</td>
+      <td class="r delta-up">+45.1%</td>
+      <td class="r">3.9%</td><td class="r">5.8%</td>
+      <td class="r delta-up">+1.8pp</td>
+    </tr>
+    <tr style="border-top:2px solid var(--border)">
+      <td><strong>Total (3 categories)</strong></td>
+      <td class="r"><strong>220,623</strong></td><td class="r"><strong>218,171</strong></td>
+      <td class="r delta-flat">&minus;1.1%</td>
+      <td class="r">100%</td><td class="r">100%</td>
+      <td class="r">—</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr class="divider">
+
+<!-- ═══════ COMPOSITION SHIFT ═══════ -->
+<h2>Composition Shift</h2>
+
+<h3>TY24</h3>
+<div class="stacked-bar">
+  <div class="stacked-seg" style="width:93.0%;background:var(--rose)">Too Expensive 93%</div>
+  <div class="stacked-seg" style="width:3.1%;background:var(--amber);font-size:0"></div>
+  <div class="stacked-seg" style="width:3.9%;background:var(--accent);font-size:0"></div>
+</div>
+<p class="dim" style="margin-top:0.25rem">
+  <span style="color:var(--rose)">&#9632;</span> Too Expensive 93%&ensp;
+  <span style="color:var(--amber)">&#9632;</span> Transparency 3%&ensp;
+  <span style="color:var(--accent)">&#9632;</span> Upselling 4%
+</p>
+
+<h3>TY25</h3>
+<div class="stacked-bar">
+  <div class="stacked-seg" style="width:89.3%;background:var(--rose)">Too Expensive 89%</div>
+  <div class="stacked-seg" style="width:5.0%;background:var(--amber);font-size:0.6rem">5%</div>
+  <div class="stacked-seg" style="width:5.8%;background:var(--accent);font-size:0.6rem">6%</div>
+</div>
+<p class="dim" style="margin-top:0.25rem">
+  <span style="color:var(--rose)">&#9632;</span> Too Expensive 89%&ensp;
+  <span style="color:var(--amber)">&#9632;</span> Transparency 5%&ensp;
+  <span style="color:var(--accent)">&#9632;</span> Upselling 6%
+</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">The mix shifted at the margins — value still overwhelmingly dominates</div>
+  <p>Value went from 93% to 89%. Transparency grew from 3.1% to 5.0% (+1.9pp). Upselling grew from 3.9% to 5.8% (+1.8pp). The shift is real but modest — "Too Expensive" is still nearly 18x larger than transparency using this classification. The growth in transparency and upselling reduced value's <em>share</em>, but value's absolute volume barely changed.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ RATE-NORMALIZED ═══════ -->
+<h2>Rate-Normalized: Per 1,000 Survey Respondents</h2>
+<p class="dim">Controls for the 3% difference in survey volume (TY24: 3.50M, TY25: 3.41M).</p>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="lbl">Too Expensive (per 1K)</div>
+    <div class="yoy-pair">
+      <span class="ty24">58.6</span>
+      <span class="arrow">&rarr;</span>
+      <span class="ty25 val-rose">57.2</span>
+    </div>
+    <div class="sub delta-flat">&minus;2.5% &middot; Essentially flat</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Transparency (per 1K)</div>
+    <div class="yoy-pair">
+      <span class="ty24">1.9</span>
+      <span class="arrow">&rarr;</span>
+      <span class="ty25 val-amber">3.2</span>
+    </div>
+    <div class="sub delta-up">+63% &middot; Up significantly</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Upselling (per 1K)</div>
+    <div class="yoy-pair">
+      <span class="ty24">2.5</span>
+      <span class="arrow">&rarr;</span>
+      <span class="ty25 val-accent">3.7</span>
+    </div>
+    <div class="sub delta-up">+49% &middot; Up sharply</div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ SUB-TYPE DETAIL ═══════ -->
+<h2>Sub-Type Detail</h2>
+<p class="dim">Every sub-type in the classification, TY24 vs TY25. Click to filter by category.</p>
+
+<div class="toggle-group" id="subtype-toggles">
+  <button class="toggle-btn active" onclick="showTab('st-trans')">Surprise / Transparency</button>
+  <button class="toggle-btn" onclick="showTab('st-value')">Too Expensive</button>
+  <button class="toggle-btn" onclick="showTab('st-upsell')">Upselling</button>
+</div>
+
+<div id="st-trans">
+<table>
+  <thead><tr><th>Sub-Type</th><th class="r">TY24</th><th class="r">TY25</th><th class="r">&Delta;</th><th class="r">TY24 %Hi</th><th class="r">TY25 %Hi</th></tr></thead>
+  <tbody>
+    <tr class="row-danger"><td>pricing transparency issue</td><td class="r">1,843</td><td class="r">3,446</td><td class="r delta-up">+87%</td><td class="r">76%</td><td class="r">76%</td></tr>
+    <tr class="row-danger"><td>unexpected pricing charge</td><td class="r">1,650</td><td class="r">2,853</td><td class="r delta-up">+73%</td><td class="r">87%</td><td class="r">86%</td></tr>
+    <tr class="row-danger"><td>pricing discrepancy</td><td class="r">1,190</td><td class="r">1,572</td><td class="r delta-up">+32%</td><td class="r">82%</td><td class="r">84%</td></tr>
+    <tr class="row-danger"><td>misleading pricing</td><td class="r">954</td><td class="r">1,112</td><td class="r delta-up">+17%</td><td class="r">85%</td><td class="r">92%</td></tr>
+    <tr class="row-danger"><td>hidden fees, pricing transparency</td><td class="r">452</td><td class="r">631</td><td class="r delta-up">+40%</td><td class="r">90%</td><td class="r">90%</td></tr>
+    <tr class="row-danger"><td>unclear pricing disclosure</td><td class="r">310</td><td class="r">643</td><td class="r delta-up">+107%</td><td class="r">77%</td><td class="r">82%</td></tr>
+    <tr class="row-danger"><td>deceptive pricing model</td><td class="r">397</td><td class="r">548</td><td class="r delta-up">+38%</td><td class="r">78%</td><td class="r">84%</td></tr>
+  </tbody>
+</table>
+<div class="callout callout-warning">
+  <div class="callout-title">Every single transparency sub-type grew YoY</div>
+  <p>No sub-type declined. The two largest movers: <strong>"unclear pricing disclosure"</strong> more than doubled (+107%) and <strong>"pricing transparency issue"</strong> grew +87%. These are the disclosure-failure sub-types — customers not seeing the price until too late. The "perceived deception" sub-types ("misleading pricing" +17%, "deceptive pricing model" +38%) grew more slowly, suggesting the increase is driven more by information gaps than by customers feeling intentionally misled.</p>
+</div>
+</div>
+
+<div id="st-value" class="hidden">
+<table>
+  <thead><tr><th>Sub-Type</th><th class="r">TY24</th><th class="r">TY25</th><th class="r">&Delta;</th><th class="r">TY24 %Hi</th><th class="r">TY25 %Hi</th></tr></thead>
+  <tbody>
+    <tr class="row-warning"><td>pricing concern</td><td class="r">200,309</td><td class="r">186,714</td><td class="r delta-down">&minus;7%</td><td class="r">46%</td><td class="r">68%</td></tr>
+    <tr class="row-danger"><td>pricing too high</td><td class="r">2,346</td><td class="r">4,011</td><td class="r delta-up">+71%</td><td class="r">86%</td><td class="r">88%</td></tr>
+    <tr class="row-danger"><td>pricing increase</td><td class="r">881</td><td class="r">1,830</td><td class="r delta-up">+108%</td><td class="r">59%</td><td class="r">59%</td></tr>
+    <tr class="row-danger"><td>pricing barrier</td><td class="r">1,193</td><td class="r">1,599</td><td class="r delta-up">+34%</td><td class="r">84%</td><td class="r">88%</td></tr>
+    <tr class="row-danger"><td>excessive pricing/fees</td><td class="r">404</td><td class="r">598</td><td class="r delta-up">+48%</td><td class="r">90%</td><td class="r">90%</td></tr>
+  </tbody>
+</table>
+<div class="callout callout-danger">
+  <div class="callout-title">The generic "pricing concern" shrank, but specific complaints grew</div>
+  <p>The catch-all <strong>"pricing concern"</strong> dropped 7%. But every specific value sub-type increased: <strong>"pricing increase"</strong> more than doubled (+108%), <strong>"pricing too high"</strong> up 71%, <strong>"excessive pricing/fees"</strong> up 48%, <strong>"pricing barrier"</strong> up 34%. Customers are getting more specific about <em>what</em> costs too much. The net effect: total value friction fell 5%, but the pointed complaints within it grew sharply.</p>
+</div>
+</div>
+
+<div id="st-upsell" class="hidden">
+<table>
+  <thead><tr><th>Sub-Type</th><th class="r">TY24</th><th class="r">TY25</th><th class="r">&Delta;</th><th class="r">TY24 %Hi</th><th class="r">TY25 %Hi</th></tr></thead>
+  <tbody>
+    <tr class="row-danger"><td>aggressive upselling</td><td class="r">3,710</td><td class="r">5,103</td><td class="r delta-up">+38%</td><td class="r">38%</td><td class="r">54%</td></tr>
+    <tr class="row-danger"><td>excessive upselling</td><td class="r">2,748</td><td class="r">2,549</td><td class="r delta-down">&minus;7%</td><td class="r">16%</td><td class="r">40%</td></tr>
+    <tr class="row-danger"><td>excessive upgrade prompts</td><td class="r">1,154</td><td class="r">2,103</td><td class="r delta-up">+82%</td><td class="r">26%</td><td class="r">28%</td></tr>
+    <tr class="row-danger"><td>aggressive upselling tactics</td><td class="r">574</td><td class="r">1,480</td><td class="r delta-up">+158%</td><td class="r">73%</td><td class="r">69%</td></tr>
+    <tr class="row-danger"><td>excessive upsell prompts</td><td class="r">508</td><td class="r">1,379</td><td class="r delta-up">+171%</td><td class="r">44%</td><td class="r">38%</td></tr>
+  </tbody>
+</table>
+<div class="callout callout-info">
+  <div class="callout-title">"Tactics" and "prompts" sub-types grew fastest — suggesting more touchpoints</div>
+  <p><strong>"Excessive upsell prompts"</strong> nearly tripled (+171%). <strong>"Aggressive upselling tactics"</strong> grew +158%. <strong>"Excessive upgrade prompts"</strong> up +82%. These are the sub-types that describe <em>frequency</em> and <em>persistence</em> of upsell attempts. The implication: TY25 likely had more upsell touchpoints in the flow, and customers are naming that increase explicitly.</p>
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ SEVERITY ═══════ -->
+<h2>Severity Comparison</h2>
+
+<table>
+  <thead>
+    <tr><th>Category</th><th class="r">TY24 % High</th><th class="r">TY25 % High</th><th class="r">&Delta;</th><th class="r">TY24 % Neg.</th><th class="r">TY25 % Neg.</th></tr>
+  </thead>
+  <tbody>
+    <tr class="row-danger">
+      <td><strong>Too Expensive</strong></td>
+      <td class="r">47.8%</td><td class="r">68.7%</td><td class="r delta-up">+20.9pp</td>
+      <td class="r">22.0%</td><td class="r">4.5%</td>
+    </tr>
+    <tr class="row-warning">
+      <td><strong>Transparency</strong></td>
+      <td class="r">73.5%</td><td class="r">78.3%</td><td class="r delta-up">+4.8pp</td>
+      <td class="r">12.8%</td><td class="r">8.5%</td>
+    </tr>
+    <tr class="row-accent">
+      <td><strong>Upselling</strong></td>
+      <td class="r">43.8%</td><td class="r">59.7%</td><td class="r delta-up">+15.9pp</td>
+      <td class="r">19.1%</td><td class="r">8.6%</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <div class="callout-title">Severity and sentiment shifts: likely a calibration artifact</div>
+  <p>Every category shows severity up and negative sentiment down. This systematic pattern suggests an LLM extraction calibration change between TY24 and TY25 processing runs, not a true behavioral shift. <strong>Within-year relative differences</strong> (transparency is more severe than value) remain the reliable signal. Cross-year absolute severity levels should be compared cautiously.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ SO WHAT ═══════ -->
+<h2>So What</h2>
+
+<div class="grid-2">
+  <div class="callout callout-danger">
+    <div class="callout-title">The original conclusion holds: "Too Expensive" overwhelmingly dominates</div>
+    <p>Using the same classification, value friction is 89% of the total in TY25 (down from 93% in TY24 but still nearly 18x transparency). The core finding from the cross-source analysis — that pricing friction is a <em>value perception</em> problem, not an <em>information</em> problem — is stable year over year.</p>
+  </div>
+  <div class="callout callout-warning">
+    <div class="callout-title">But transparency is the fastest-growing edge</div>
+    <p>+59% volume (+63% rate-normalized). Every one of the 7 transparency sub-types grew. The two biggest movers are disclosure failures ("unclear pricing disclosure" +107%, "pricing transparency issue" +87%). At 5% share, transparency isn't the main story — but it's the margin that's moving in the wrong direction, and it's the one with the clearest product fix.</p>
+  </div>
+</div>
+
+<div class="callout callout-violet">
+  <div class="callout-title">Why the deep-dive found bigger transparency numbers</div>
+  <p>The <a href="ty25_prs_pricing_deep_dive.html">PRS deep-dive</a> used broad LIKE-based matching and found 61K transparency friction points (19% of total) vs. 10.8K (5%) here. The difference is the long tail: sub-types like <code>hidden fees</code> (576), <code>unexpected billing charge</code> (1,342), <code>pricing confusion</code> (636), <code>unclear pricing communication</code> (564), and dozens of others that the original 7-name list didn't include. Neither is wrong — the narrow list is more conservative and comparable; the broad list captures the full extent of transparency-related friction. Both tell the same directional story: transparency is small relative to value, but growing fast.</p>
+</div>
+
+<p class="source-tag">Source: <code>voc_7216_dwh.structured_extracts</code> &middot; <code>source_type = 'survey'</code> (PRS) &middot; TY24 &amp; TY25 full season &middot; Classification: 17 exact sub-type names from cross-source analysis &middot; Jun 2026</p>
+
+</div>
+
+<script>
+function showTab(tab) {
+  document.getElementById('st-trans').classList.toggle('hidden', tab !== 'st-trans');
+  document.getElementById('st-value').classList.toggle('hidden', tab !== 'st-value');
+  document.getElementById('st-upsell').classList.toggle('hidden', tab !== 'st-upsell');
+  const btns = document.getElementById('subtype-toggles').querySelectorAll('.toggle-btn');
+  btns[0].classList.toggle('active', tab === 'st-trans');
+  btns[1].classList.toggle('active', tab === 'st-value');
+  btns[2].classList.toggle('active', tab === 'st-upsell');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TY25 E-file Reject Letter Forecast</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --text: #e2e8f0; --text-dim: #94a3b8;
+    --blue: #38bdf8; --green: #4ade80; --amber: #fbbf24;
+    --rose: #fb7185; --violet: #a78bfa; --orange: #fb923c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem; }
+  .header { max-width: 1400px; margin: 0 auto 2rem; }
+  .header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .header .subtitle { color: var(--text-dim); font-size: 0.95rem; }
+  .back-link { display: inline-block; margin-bottom: 1rem; color: var(--blue); text-decoration: none; font-size: 0.9rem; }
+  .back-link:hover { text-decoration: underline; }
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; max-width: 1400px; margin: 0 auto 2rem; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; text-align: center; }
+  .kpi-card .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 0.5rem; }
+  .kpi-card .value { font-size: 1.75rem; font-weight: 700; }
+  .kpi-card .detail { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.25rem; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px; margin: 0 auto 2rem; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+  .chart-card.full-width { grid-column: 1 / -1; }
+  .chart-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.data-table th { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 2px solid var(--border); color: var(--text-dim); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  table.data-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+  table.data-table tr:last-child td { border-bottom: none; }
+  table.data-table tr:hover { background: rgba(56, 189, 248, 0.05); }
+  .text-right { text-align: right; }
+  .month-header td { background: rgba(56, 189, 248, 0.08); font-weight: 600; border-top: 2px solid var(--border); }
+  .scrollable-table { max-height: 600px; overflow-y: auto; border-radius: 8px; }
+  .scrollable-table table.data-table thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .actual-row { }
+  .forecast-row { font-style: italic; }
+  .forecast-row td:first-child::after { content: ' *'; color: var(--amber); font-size: 0.7rem; vertical-align: super; }
+  .total-row { font-weight: 700; border-top: 2px solid var(--border); }
+  .total-row td { border-bottom: none; }
+  .method-box { max-width: 1400px; margin: 0 auto 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+  .method-box h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--blue); }
+  .method-box p { font-size: 0.88rem; line-height: 1.6; color: var(--text-dim); margin-bottom: 0.5rem; }
+  .footer { max-width: 1400px; margin: 2rem auto 0; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-dim); text-align: center; }
+  @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } .kpi-strip { grid-template-columns: repeat(2, 1fr); } body { padding: 1rem; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a class="back-link" href="https://github.intuit.com/awatson4/nlac">&larr; Back to nlac</a>
+  <h1>TY25 E-file Reject Letter Forecast</h1>
+  <div class="subtitle">Unresolved rejected customers qualifying for outreach letter (6-day intervention window) &middot; TY24 curve &times; 1.0723 ratio &middot; Generated 4/30/2026</div>
+</div>
+
+<div class="kpi-strip">
+  <div class="kpi-card">
+    <div class="label">Jan &ndash; Apr Actuals</div>
+    <div class="value">1,546,637</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">May &ndash; Nov Forecast</div>
+    <div class="value" style="color: var(--amber)">148,285</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Full Season Estimate</div>
+    <div class="value">1,694,922</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">TY25/TY24 Ratio (Feb-Apr)</div>
+    <div class="value" style="color: var(--blue)">1.0723x</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card full-width">
+    <h3>Monthly Letter Volume &mdash; Est Refund vs Bal Due</h3>
+    <div id="chart-stacked"></div>
+  </div>
+  <div class="chart-card full-width">
+    <h3>TY25 vs TY24 Curve Overlay</h3>
+    <div id="chart-overlay"></div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <h3>Actuals (Jan &ndash; Apr 2026)</h3>
+    <table class="data-table">
+      <thead><tr><th>Month</th><th class="text-right">Est Refund</th><th class="text-right">Bal Due</th><th class="text-right">Total</th></tr></thead>
+      <tbody id="actuals-table"></tbody>
+    </table>
+  </div>
+  <div class="chart-card">
+    <h3>Forecast (May &ndash; Nov 2026)</h3>
+    <table class="data-table">
+      <thead><tr><th>Month</th><th class="text-right">Est Refund</th><th class="text-right">Bal Due</th><th class="text-right">Total</th><th class="text-right">TY24 Basis</th></tr></thead>
+      <tbody id="forecast-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card full-width">
+    <h3>Weekly Forecast Breakdown (Mon start) &mdash; May &ndash; Nov 2026</h3>
+    <div id="chart-weekly"></div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card full-width">
+    <h3>Weekly Detail Table</h3>
+    <p style="font-size:0.8rem; color: var(--text-dim); margin-bottom:1rem;">Weeks start on Monday. TY24 basis shown for reference. Grouped by month with subtotals.</p>
+    <div class="scrollable-table">
+      <table class="data-table">
+        <thead><tr><th>Week Starting</th><th class="text-right">Est Refund</th><th class="text-right">Bal Due</th><th class="text-right">Total</th><th class="text-right">TY24 Basis</th></tr></thead>
+        <tbody id="weekly-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <h3>Ratio Derivation</h3>
+    <p style="font-size:0.8rem; color: var(--text-dim); margin-bottom:1rem;">January excluded (partial month). Feb-Apr used as scaling basis.</p>
+    <table class="data-table">
+      <thead><tr><th>Month</th><th class="text-right">TY25 Actual</th><th class="text-right">TY24 Curve</th><th class="text-right">Ratio</th></tr></thead>
+      <tbody id="ratio-table"></tbody>
+    </table>
+  </div>
+  <div class="chart-card">
+    <h3>Refund vs Balance Due Mix</h3>
+    <div id="chart-pie"></div>
+  </div>
+</div>
+
+<div class="method-box">
+  <h3>Methodology</h3>
+  <p>Adapted from the TY23 forecast in <a href="https://github.intuit.com/awatson4/nlac/blob/master/efile_reject_letter_ty23_forecast" style="color: var(--blue)">awatson4/nlac</a>. Customers with a federal e-file reject are counted as qualifying for a letter if they remain unresolved (no accepted e-file or print-to-mail) 6 days after rejection.</p>
+  <p>TY24 daily qualifying counts from <code style="background:var(--bg); padding:2px 6px; border-radius:4px; font-size:0.82rem;">dlprd.tax_rpt.product_analytics_master</code> were aggregated to months, then scaled by the Feb-Apr TY25/TY24 ratio of <strong>1.0723x</strong> to project May through November. The Est Refund / Bal Due split uses the observed TY25 actuals mix (77.0% / 23.0%).</p>
+</div>
+
+<div class="footer">
+  Source: dlprd.tax_rpt.product_analytics_master &middot; TY24 curve queried 2026-04-30
+</div>
+
+<script>
+const fmt = n => n.toLocaleString();
+const plotlyDark = {
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  font: { color: '#e2e8f0', size: 12 },
+  xaxis: { gridcolor: '#334155', zerolinecolor: '#334155' },
+  yaxis: { gridcolor: '#334155', zerolinecolor: '#334155' },
+  margin: { l: 60, r: 20, t: 10, b: 40 },
+  legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center' },
+  hoverlabel: { bgcolor: '#1e293b', bordercolor: '#334155', font: { color: '#e2e8f0' } }
+};
+
+const actuals = [
+  { month: 'Jan', refund: 11241, baldue: 2796, total: 14037 },
+  { month: 'Feb', refund: 384096, baldue: 58486, total: 442582 },
+  { month: 'Mar', refund: 244667, baldue: 130775, total: 375442 },
+  { month: 'Apr', refund: 550957, baldue: 163619, total: 714576 },
+];
+
+const forecasts = [
+  { month: 'May', refund: 29194, baldue: 8719, total: 37913, ty24: 35358 },
+  { month: 'Jun', refund: 13976, baldue: 4174, total: 18150, ty24: 16927 },
+  { month: 'Jul', refund: 12304, baldue: 3675, total: 15979, ty24: 14902 },
+  { month: 'Aug', refund: 9885, baldue: 2952, total: 12837, ty24: 11972 },
+  { month: 'Sep', refund: 9195, baldue: 2746, total: 11941, ty24: 11136 },
+  { month: 'Oct', refund: 32068, baldue: 9577, total: 41645, ty24: 38839 },
+  { month: 'Nov', refund: 7562, baldue: 2258, total: 9820, ty24: 9158 },
+];
+
+const ty24Full = [
+  { month: 'Jan', qualifies: 135044 },
+  { month: 'Feb', qualifies: 594220 },
+  { month: 'Mar', qualifies: 347317 },
+  { month: 'Apr', qualifies: 487784 },
+  { month: 'May', qualifies: 35358 },
+  { month: 'Jun', qualifies: 16927 },
+  { month: 'Jul', qualifies: 14902 },
+  { month: 'Aug', qualifies: 11972 },
+  { month: 'Sep', qualifies: 11136 },
+  { month: 'Oct', qualifies: 38839 },
+  { month: 'Nov', qualifies: 9158 },
+];
+
+const ratios = [
+  { month: 'Jan', ty25: 14037, ty24: 135044, ratio: 0.104 },
+  { month: 'Feb', ty25: 442582, ty24: 594220, ratio: 0.745 },
+  { month: 'Mar', ty25: 375442, ty24: 347317, ratio: 1.081 },
+  { month: 'Apr', ty25: 714576, ty24: 487784, ratio: 1.465 },
+];
+
+const all = [...actuals, ...forecasts];
+const months = all.map(d => d.month);
+
+// Stacked bar chart
+const barActualIdx = actuals.length;
+Plotly.newPlot('chart-stacked', [
+  {
+    name: 'Est Refund (Actual)', type: 'bar',
+    x: actuals.map(d => d.month), y: actuals.map(d => d.refund),
+    marker: { color: '#38bdf8' },
+    hovertemplate: '%{x}: %{y:,.0f}<extra>Est Refund</extra>'
+  },
+  {
+    name: 'Bal Due (Actual)', type: 'bar',
+    x: actuals.map(d => d.month), y: actuals.map(d => d.baldue),
+    marker: { color: '#a78bfa' },
+    hovertemplate: '%{x}: %{y:,.0f}<extra>Bal Due</extra>'
+  },
+  {
+    name: 'Est Refund (Forecast)', type: 'bar',
+    x: forecasts.map(d => d.month), y: forecasts.map(d => d.refund),
+    marker: { color: '#38bdf8', opacity: 0.5, line: { width: 1, color: '#38bdf8' } },
+    hovertemplate: '%{x}: %{y:,.0f}<extra>Est Refund (Fcst)</extra>'
+  },
+  {
+    name: 'Bal Due (Forecast)', type: 'bar',
+    x: forecasts.map(d => d.month), y: forecasts.map(d => d.baldue),
+    marker: { color: '#a78bfa', opacity: 0.5, line: { width: 1, color: '#a78bfa' } },
+    hovertemplate: '%{x}: %{y:,.0f}<extra>Bal Due (Fcst)</extra>'
+  },
+], {
+  ...plotlyDark, barmode: 'stack', height: 360,
+  xaxis: { ...plotlyDark.xaxis, categoryorder: 'array', categoryarray: months },
+  yaxis: { ...plotlyDark.yaxis, title: 'Letter-Qualifying Customers' },
+}, { responsive: true, displayModeBar: false });
+
+// Line overlay chart
+Plotly.newPlot('chart-overlay', [
+  {
+    name: 'TY25 (Actual + Forecast)', type: 'scatter', mode: 'lines+markers',
+    x: months, y: all.map(d => d.total),
+    line: { color: '#38bdf8', width: 3 },
+    marker: { size: 8 },
+    hovertemplate: '%{x}: %{y:,.0f}<extra>TY25</extra>'
+  },
+  {
+    name: 'TY24 Actual', type: 'scatter', mode: 'lines+markers',
+    x: ty24Full.map(d => d.month), y: ty24Full.map(d => d.qualifies),
+    line: { color: '#94a3b8', width: 2, dash: 'dot' },
+    marker: { size: 6 },
+    hovertemplate: '%{x}: %{y:,.0f}<extra>TY24</extra>'
+  },
+  {
+    name: 'Actual/Forecast boundary', type: 'scatter', mode: 'lines',
+    x: ['Apr', 'Apr'], y: [0, 750000],
+    line: { color: '#fbbf24', width: 1, dash: 'dash' },
+    showlegend: false, hoverinfo: 'skip'
+  }
+], {
+  ...plotlyDark, height: 320,
+  xaxis: { ...plotlyDark.xaxis, categoryorder: 'array', categoryarray: months },
+  yaxis: { ...plotlyDark.yaxis, title: 'Letter-Qualifying Customers' },
+  annotations: [{
+    x: 'May', y: 45000, text: 'Forecast begins', showarrow: false,
+    font: { color: '#fbbf24', size: 11 }
+  }]
+}, { responsive: true, displayModeBar: false });
+
+// Pie chart
+const totalRefund = all.reduce((s,d) => s + d.refund, 0);
+const totalBaldue = all.reduce((s,d) => s + d.baldue, 0);
+Plotly.newPlot('chart-pie', [{
+  type: 'pie',
+  labels: ['Est Refund', 'Bal Due'],
+  values: [totalRefund, totalBaldue],
+  marker: { colors: ['#38bdf8', '#a78bfa'] },
+  textinfo: 'label+percent',
+  textfont: { color: '#e2e8f0' },
+  hole: 0.4,
+  hovertemplate: '%{label}: %{value:,.0f} (%{percent})<extra></extra>'
+}], {
+  ...plotlyDark, height: 280,
+  showlegend: false,
+}, { responsive: true, displayModeBar: false });
+
+// Actuals table
+const actualsBody = document.getElementById('actuals-table');
+let actualsSum = { refund: 0, baldue: 0, total: 0 };
+actuals.forEach(d => {
+  actualsSum.refund += d.refund; actualsSum.baldue += d.baldue; actualsSum.total += d.total;
+  actualsBody.innerHTML += `<tr class="actual-row"><td>${d.month}</td><td class="text-right">${fmt(d.refund)}</td><td class="text-right">${fmt(d.baldue)}</td><td class="text-right">${fmt(d.total)}</td></tr>`;
+});
+actualsBody.innerHTML += `<tr class="total-row"><td>Total</td><td class="text-right">${fmt(actualsSum.refund)}</td><td class="text-right">${fmt(actualsSum.baldue)}</td><td class="text-right">${fmt(actualsSum.total)}</td></tr>`;
+
+// Forecast table
+const forecastBody = document.getElementById('forecast-table');
+let fcstSum = { refund: 0, baldue: 0, total: 0, ty24: 0 };
+forecasts.forEach(d => {
+  fcstSum.refund += d.refund; fcstSum.baldue += d.baldue; fcstSum.total += d.total; fcstSum.ty24 += d.ty24;
+  forecastBody.innerHTML += `<tr class="forecast-row"><td>${d.month}</td><td class="text-right">${fmt(d.refund)}</td><td class="text-right">${fmt(d.baldue)}</td><td class="text-right">${fmt(d.total)}</td><td class="text-right">${fmt(d.ty24)}</td></tr>`;
+});
+forecastBody.innerHTML += `<tr class="total-row"><td>Total</td><td class="text-right">${fmt(fcstSum.refund)}</td><td class="text-right">${fmt(fcstSum.baldue)}</td><td class="text-right">${fmt(fcstSum.total)}</td><td class="text-right">${fmt(fcstSum.ty24)}</td></tr>`;
+
+// Weekly forecast data (Mon start, May-Nov)
+const weeklyForecast = [
+  { week: '05/04', month: 'May', refund: 11800, baldue: 3525, total: 15325, ty24: 14292 },
+  { week: '05/11', month: 'May', refund: 5372, baldue: 1604, total: 6976, ty24: 6506 },
+  { week: '05/18', month: 'May', refund: 4675, baldue: 1397, total: 6072, ty24: 5663 },
+  { week: '05/25', month: 'May', refund: 3831, baldue: 1144, total: 4975, ty24: 4640 },
+  { week: '06/01', month: 'Jun', refund: 3674, baldue: 1098, total: 4772, ty24: 4450 },
+  { week: '06/08', month: 'Jun', refund: 3553, baldue: 1061, total: 4614, ty24: 4303 },
+  { week: '06/15', month: 'Jun', refund: 3040, baldue: 908, total: 3948, ty24: 3682 },
+  { week: '06/22', month: 'Jun', refund: 2958, baldue: 884, total: 3842, ty24: 3583 },
+  { week: '06/29', month: 'Jun', refund: 2419, baldue: 722, total: 3141, ty24: 2929 },
+  { week: '07/06', month: 'Jul', refund: 2432, baldue: 726, total: 3158, ty24: 2945 },
+  { week: '07/13', month: 'Jul', refund: 3056, baldue: 913, total: 3969, ty24: 3701 },
+  { week: '07/20', month: 'Jul', refund: 2960, baldue: 884, total: 3844, ty24: 3585 },
+  { week: '07/27', month: 'Jul', refund: 2752, baldue: 822, total: 3574, ty24: 3333 },
+  { week: '08/03', month: 'Aug', refund: 2608, baldue: 779, total: 3387, ty24: 3159 },
+  { week: '08/10', month: 'Aug', refund: 1975, baldue: 590, total: 2565, ty24: 2392 },
+  { week: '08/17', month: 'Aug', refund: 2006, baldue: 599, total: 2605, ty24: 2429 },
+  { week: '08/24', month: 'Aug', refund: 2413, baldue: 721, total: 3134, ty24: 2923 },
+  { week: '08/31', month: 'Aug', refund: 1785, baldue: 533, total: 2318, ty24: 2162 },
+  { week: '09/07', month: 'Sep', refund: 1962, baldue: 586, total: 2548, ty24: 2376 },
+  { week: '09/14', month: 'Sep', refund: 1953, baldue: 583, total: 2536, ty24: 2365 },
+  { week: '09/21', month: 'Sep', refund: 2720, baldue: 812, total: 3532, ty24: 3294 },
+  { week: '09/28', month: 'Sep', refund: 2452, baldue: 732, total: 3184, ty24: 2969 },
+  { week: '10/05', month: 'Oct', refund: 3266, baldue: 976, total: 4242, ty24: 3956 },
+  { week: '10/12', month: 'Oct', refund: 4904, baldue: 1465, total: 6369, ty24: 5940 },
+  { week: '10/19', month: 'Oct', refund: 19972, baldue: 5966, total: 25938, ty24: 24189 },
+  { week: '10/26', month: 'Oct', refund: 2852, baldue: 852, total: 3704, ty24: 3454 },
+  { week: '11/02', month: 'Nov', refund: 6902, baldue: 2061, total: 8963, ty24: 8359 },
+  { week: '11/09', month: 'Nov', refund: 342, baldue: 102, total: 444, ty24: 414 },
+  { week: '11/16', month: 'Nov', refund: 35, baldue: 10, total: 45, ty24: 42 },
+];
+
+// Weekly bar chart
+Plotly.newPlot('chart-weekly', [
+  {
+    name: 'TY25 Forecast', type: 'bar',
+    x: weeklyForecast.map(d => d.week),
+    y: weeklyForecast.map(d => d.total),
+    marker: { color: weeklyForecast.map(d => {
+      const m = d.month;
+      if (m === 'May') return '#38bdf8';
+      if (m === 'Jun') return '#4ade80';
+      if (m === 'Jul') return '#fbbf24';
+      if (m === 'Aug') return '#fb923c';
+      if (m === 'Sep') return '#fb7185';
+      if (m === 'Oct') return '#a78bfa';
+      return '#94a3b8';
+    }), opacity: 0.7 },
+    hovertemplate: 'Wk %{x}: %{y:,.0f}<extra>TY25 Forecast</extra>'
+  },
+  {
+    name: 'TY24 Actual', type: 'scatter', mode: 'lines+markers',
+    x: weeklyForecast.map(d => d.week),
+    y: weeklyForecast.map(d => d.ty24),
+    line: { color: '#94a3b8', width: 2, dash: 'dot' },
+    marker: { size: 5 },
+    hovertemplate: 'Wk %{x}: %{y:,.0f}<extra>TY24</extra>'
+  }
+], {
+  ...plotlyDark, height: 340,
+  xaxis: { ...plotlyDark.xaxis, title: 'Week Starting (Mon)', tickangle: -45 },
+  yaxis: { ...plotlyDark.yaxis, title: 'Letter-Qualifying Customers' },
+}, { responsive: true, displayModeBar: false });
+
+// Weekly detail table with month subtotals
+const weeklyBody = document.getElementById('weekly-table');
+let currentMonth = '';
+let monthSub = { refund: 0, baldue: 0, total: 0, ty24: 0 };
+
+function flushMonthSubtotal(month) {
+  if (month) {
+    weeklyBody.innerHTML += `<tr class="total-row"><td>${month} Subtotal</td><td class="text-right">${fmt(monthSub.refund)}</td><td class="text-right">${fmt(monthSub.baldue)}</td><td class="text-right">${fmt(monthSub.total)}</td><td class="text-right">${fmt(monthSub.ty24)}</td></tr>`;
+  }
+  monthSub = { refund: 0, baldue: 0, total: 0, ty24: 0 };
+}
+
+weeklyForecast.forEach(d => {
+  if (d.month !== currentMonth) {
+    flushMonthSubtotal(currentMonth);
+    currentMonth = d.month;
+  }
+  monthSub.refund += d.refund; monthSub.baldue += d.baldue; monthSub.total += d.total; monthSub.ty24 += d.ty24;
+  weeklyBody.innerHTML += `<tr class="forecast-row"><td>${d.week}</td><td class="text-right">${fmt(d.refund)}</td><td class="text-right">${fmt(d.baldue)}</td><td class="text-right">${fmt(d.total)}</td><td class="text-right">${fmt(d.ty24)}</td></tr>`;
+});
+flushMonthSubtotal(currentMonth);
+
+let weeklyGrand = weeklyForecast.reduce((s,d) => ({ refund: s.refund+d.refund, baldue: s.baldue+d.baldue, total: s.total+d.total, ty24: s.ty24+d.ty24 }), { refund:0, baldue:0, total:0, ty24:0 });
+weeklyBody.innerHTML += `<tr class="total-row" style="border-top:3px solid var(--blue);"><td>Grand Total</td><td class="text-right">${fmt(weeklyGrand.refund)}</td><td class="text-right">${fmt(weeklyGrand.baldue)}</td><td class="text-right">${fmt(weeklyGrand.total)}</td><td class="text-right">${fmt(weeklyGrand.ty24)}</td></tr>`;
+
+// Ratio table
+const ratioBody = document.getElementById('ratio-table');
+ratios.forEach(d => {
+  const style = d.month === 'Jan' ? 'color: var(--text-dim); font-style: italic;' : '';
+  ratioBody.innerHTML += `<tr style="${style}"><td>${d.month}${d.month === 'Jan' ? ' (excluded)' : ''}</td><td class="text-right">${fmt(d.ty25)}</td><td class="text-right">${fmt(d.ty24)}</td><td class="text-right">${d.ratio.toFixed(3)}</td></tr>`;
+});
+ratioBody.innerHTML += `<tr class="total-row"><td>Feb-Apr Blended</td><td class="text-right">${fmt(442582+375442+714576)}</td><td class="text-right">${fmt(594220+347317+487784)}</td><td class="text-right">1.072</td></tr>`;
+</script>
+</body>
+</html>

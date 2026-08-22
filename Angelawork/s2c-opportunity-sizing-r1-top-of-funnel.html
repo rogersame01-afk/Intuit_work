@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R1 Top of Funnel — S2C Opportunity Sizing</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #0070C0; /* TurboTax-ish blue */
+    --accent-soft: #e6f0fa;
+    --warn-bg: #fef3c7;
+    --warn-border: #f59e0b;
+    --good: #16a34a;
+    --bad:  #dc2626;
+    --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  body {
+    margin: 0;
+    padding: 32px 24px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+  header {
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+  }
+  .meta {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 12px 0;
+  }
+  .card h2 small {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .scope-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 20px;
+    font-size: 14px;
+  }
+  .scope-grid .label {
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .big-stat {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 4px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 12px;
+  }
+  tr.team-estimate {
+    background: var(--accent-soft);
+    font-weight: 600;
+  }
+  tr.team-estimate td:first-child::before { content: "★ "; color: var(--accent); }
+  .warn-box {
+    background: var(--warn-bg);
+    border-left: 4px solid var(--warn-border);
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin: 12px 0;
+  }
+  .warn-box strong { color: #92400e; }
+  .prose {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .prose p { margin: 0 0 12px 0; }
+  .similar-tests {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 12px;
+  }
+  .similar-tests li { margin-bottom: 4px; }
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  .pos { color: var(--good); }
+  .neg { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>R1 Top of Funnel</h1>
+    <div class="meta">
+      S2C Opportunity Sizing &middot; created 2026-06-08 by Angela Watson
+    </div>
+  </header>
+
+  <!-- Section 1: Hypothesis + Population + Scope -->
+  <div class="card">
+    <h2>Scope</h2>
+    <div class="scope-grid">
+      <div class="label">Hypothesis</div><div>If we show a personalized, date-driven top-of-funnel experience that shows R1 customers immediate value using their prior year return data and what to expect for this year, it will give them confidence to file their taxes with us, increasing S2C.</div>
+      <div class="label">Population</div><div>First Year Returning · All 5 SKUs (DIY FREE, DIY PAID, CK DIY FREE, DIWM BASIC, DIWM NON-BASIC) · Mobile App / Stationary Web / Mobile Web · All starts · CK included · TY25</div>
+      <div class="label">Scaling Date</div><div>2027-02-01</div>
+      <div class="label">Tax Year Proxy</div><div>TY25</div>
+      <div class="label">Upstream Dependencies</div><div>Predicted refund engine</div>
+    </div>
+  </div>
+
+  <!-- Section 2: Total Impacted Population -->
+  <div class="card">
+    <h2>Total Impacted Population</h2>
+    <div class="big-stat">2,063,398</div>
+    <div class="meta">
+      Distinct customers who would have matched this population in TY25 as of the launch-date proxy.
+      <em>Source: reach-sizing-table (Joey Pliskin) — `auth_id` cohort at T_ref on `tax_src.tto_abandonment_src`.</em>
+    </div>
+  </div>
+
+  <!-- Section 3: Primary sizing table -->
+  <div class="card">
+    <h2>Sizing — Primary Estimate</h2>
+    <table>
+      <!--
+        Numeric framing in this table — Path C from issue #13:
+          - Baseline column:    PM-friendly "%" form (e.g. "81.8%")
+          - ITC column:         ITC value from Brett's skill (e.g. "100.5")
+          - Lifted Rate column: PM-friendly "%" form derived from Baseline × ITC
+          - Δ column:           ALWAYS use "%" not "pp" — even though "pp" is
+                                statistically more accurate for absolute-point
+                                differences, "%" matches the PM's mental model
+                                and is consistent with the Turn 7 warning copy.
+                                Format as +X.X% / -X.X% with sign.
+        Both representations (%, ITC) are visible across the row, so a reader
+        can never be confused which space they're in.
+      -->
+      <thead>
+        <tr>
+          <th></th>
+          <th>Baseline</th>
+          <th>ITC</th>
+          <th>Lifted Rate</th>
+          <th>Δ</th>
+          <th>Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>TY26 S2C</td>
+          <td>74.7%</td>
+          <td>100.6</td>
+          <td>75.1%</td>
+          <td>+0.6%</td>
+          <td><strong>9,238</strong> unit impact</td>
+        </tr>
+        <tr>
+          <td>TY26 ARPC</td>
+          <td>$110.90</td>
+          <td>100.0</td>
+          <td>$110.90</td>
+          <td>+$0.00</td>
+          <td><strong>$1,024,494</strong> revenue impact</td>
+        </tr>
+        <tr>
+          <td>TY27 C2C</td>
+          <td>69.4%</td>
+          <td>101.0</td>
+          <td>70.1%</td>
+          <td>+1.0%</td>
+          <td><strong>+10,688</strong> next-year unit impact</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 4: Sensitivity table — 4 anchors + Team Estimate -->
+  <div class="card">
+    <h2>Sensitivity — by S2C ITC Scenario</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>ITC</th>
+          <th>Unit Impact</th>
+          <th>Revenue Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="">
+          <td>Conservative anchor <span style="color: var(--text-muted); font-size: 12px; font-weight: 400;">(p50)</span></td>
+          <td>100.1</td>
+          <td>1,540</td>
+          <td>$170,786</td>
+        </tr>
+        <tr class="">
+          <td>Realistic anchor <span style="color: var(--text-muted); font-size: 12px; font-weight: 400;">(p75)</span></td>
+          <td>100.3</td>
+          <td>4,619</td>
+          <td>$512,448</td>
+        </tr>
+        <tr class="team-estimate">
+          <td>Team Estimate <span style="color: var(--text-muted); font-size: 12px; font-weight: 400;">(p95)</span></td>
+          <td>100.6</td>
+          <td>9,238</td>
+          <td>$1,024,494</td>
+        </tr>
+        <tr class="">
+          <td>Stretch anchor <span style="color: var(--text-muted); font-size: 12px; font-weight: 400;">(p95)</span></td>
+          <td>100.6</td>
+          <td>9,238</td>
+          <td>$1,024,494</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="similar-tests">
+      Anchors filtered to tests with similar population and mechanism. Source: benchmark-experiments (Brett Salmon).
+    </div>
+  </div>
+
+  <!-- Section 6: Benchmark context (similar tests) -->
+  <div class="card">
+    <h2>Benchmark Context <small>— similar prior tests</small></h2>
+    <div class="prose">
+      <p>Qualifying cohort: Personalization (Non-AI), N=12. The PM's claim of ITC 100.6 matches the p95 anchor — the best-ever result in this mechanism category. All L1 filters were skipped (AUDIENCE=ALL, APP_TYPE=ALL, COMPLEXITY=ALL), landing at L2 on mechanism. ~37% of TY25 tests landed below ITC 100. Most analogous tests all used prior-year Checkmate data for returning filers.</p>
+    </div>
+    <ul class="similar-tests">
+      <li><strong>Checkmate YOY Backtest</strong> — actual: ITC 100.5 (+0.5% S2C lift)</li>
+      <li><strong>Checkmate YOY Backtest Dependents</strong> — actual: ITC 99.9 (-0.1% S2C lift)</li>
+      <li><strong>Checkmate SY WB</strong> — actual: ITC 98.8 (-1.2% S2C lift)</li>
+      <li><strong>Adaptive Race Mode</strong> — actual: ITC 99.7 (-0.3% S2C lift)</li>
+    </ul>
+  </div>
+
+  <!-- Section 7: VoC summary -->
+  <div class="card">
+    <h2>VoC Context <small>— customer pain in this area</small></h2>
+    <div class="prose">
+      <p>During First Peak (Jan 24 – Feb 15, 2026), First Year Returning customers across all five SKUs generated contact volume concentrated in top-of-funnel friction. The highest-pain theme by volume × negativity is <strong>E-file Reject / Return Rejected</strong> (121 contacts, 66.9% negative), where customers who successfully complete filing encounter a confusing rejection loop with no clear recovery path. <strong>Document Upload Issues (W-2 / Tax Docs)</strong> is the highest-volume theme (175 contacts, 28.6% negative). <strong>Tax Return Amendment</strong> (153 contacts, 32.0% negative) spikes in First Peak, with many contacts occurring same-day post-filing.</p>
+
+<p><strong>Top 5 contact drivers — First Year Returning · First Peak · All SKUs:</strong></p>
+<table>
+  <thead><tr><th>Theme</th><th>Volume</th><th>% Negative</th></tr></thead>
+  <tbody>
+    <tr><td>Document Upload Issues (W-2 / Tax Docs)</td><td>175</td><td>28.6%</td></tr>
+    <tr><td>Tax Return Amendment</td><td>153</td><td>32.0%</td></tr>
+    <tr><td>Checkout / Payment Friction</td><td>122</td><td>25.4%</td></tr>
+    <tr><td>E-file Reject / Return Rejected</td><td>121</td><td>66.9%</td></tr>
+    <tr><td>Identity Verification</td><td>51</td><td>13.7%</td></tr>
+  </tbody>
+</table>
+
+<p style="margin-top: 16px;"><strong>PM-actionable recommendations:</strong></p>
+<ol>
+  <li><strong>Surface a clear recovery path at the e-file rejection screen</strong> — 121 contacts at 66.9% negative. Show the specific reject code in plain language and pre-populate the field to fix. → <em>Display the IRS reject code immediately after rejection with a "What do I fix?" inline explainer so customers can self-serve.</em></li>
+  <li><strong>Reduce W-2 and document upload failures</strong> — 175 contacts at 28.6% negative. Add a real-time upload status indicator with specific error reason and surface the manual-entry path proactively on first failed import.</li>
+  <li><strong>Add a pre-submission review step and same-session amendment fast path</strong> — 153 contacts at 32.0% negative. Amendment contacts spike in First Peak. → <em>Add a pre-submission summary screen flagging commonly-missed fields and offer streamlined same-session amendment within 24 hours of filing.</em></li>
+</ol>
+    </div>
+
+    <!-- 3 inline raw verbatims — one per top 3 themes -->
+    <div style="margin-top: 16px;">
+      <p style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px;">Customer Verbatims</p>
+      <blockquote style="border-left: 3px solid var(--border); margin: 0 0 12px 0; padding: 8px 14px; font-size: 13px; color: var(--text); font-style: italic; background: #f8fafc; border-radius: 4px;">
+  <strong style="font-style: normal; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">File / Complete Tax Return · First Year Returning · Abandoned</strong><br>
+  "I filed my federal taxes last year for the first time through TurboTax and now I'm trying to go back on and do my taxes again and it's saying that I need to upgrade and pay. I've never had to pay before."
+</blockquote>
+<blockquote style="border-left: 3px solid var(--border); margin: 0 0 12px 0; padding: 8px 14px; font-size: 13px; color: var(--text); font-style: italic; background: #f8fafc; border-radius: 4px;">
+  <strong style="font-style: normal; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">Upload / Import Tax Documents (W-2) · First Year Returning · Abandoned</strong><br>
+  "It opened up automatically on — I didn't even upload it, it was already uploaded when I logged in. What do you need from me? I was to download it and re-upload it? ...Accept it says we're still setting things up please wait a minute and try again. I'm in the middle of uploading the first picture and it went back to the original screen — did you get anything?"
+</blockquote>
+<blockquote style="border-left: 3px solid var(--border); margin: 0 0 12px 0; padding: 8px 14px; font-size: 13px; color: var(--text); font-style: italic; background: #f8fafc; border-radius: 4px;">
+  <strong style="font-style: normal; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">Amend Prior-Year Return · First Year Returning · Abandoned</strong><br>
+  "I was trying to file my taxes into TurboTax and I put on there that I was married and everything and it kept rejecting it when I finished e-signing — it rejected it like 8 or 9 times and it would never let me correct anything. Then it decided it was sent to the IRS but then it got kicked back... I never actually got it filed."
+</blockquote>
+    </div>
+
+    <div class="similar-tests" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
+      <span>Source: voc-milestone-drivers (Angela Watson) — joins <code>tmp_cgcs_voc_cct</code> × <code>structured_extracts</code> × PAM.</span>
+      <a href="r1-top-of-funnel-verbatims.html" style="font-size: 13px; color: var(--accent); font-weight: 600; white-space: nowrap;">View all verbatims →</a>
+    </div>
+  </div>
+
+  <!-- Section 8: Assumptions / LOFAs + Mechanism -->
+  <div class="card">
+    <h2>Assumptions &amp; Mechanism</h2>
+    <div class="prose">
+      <p><strong>Mechanism:</strong> Personalization</p>
+      <p><strong>Assumptions / LOFAs:</strong></p>
+      <p style="background: #f8fafc; padding: 12px 16px; border-radius: 6px; border-left: 3px solid var(--accent);">We can develop an accurate predicted refund before the customer selects a SKU, using their prior year data and minor updates to their situation. That prediction plus their prior year insights will give them confidence to complete.</p>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      Generated by the <a href="https://github.intuit.com/srathbun/s2c-opportunity-sizing"><code>s2c-opportunity-sizing</code></a> plugin.
+      <br>
+      To revise this sizing: open Claude Code and say <code>resume sizing r1-top-of-funnel</code>.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

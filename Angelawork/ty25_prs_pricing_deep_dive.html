@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TY25 PRS Pricing Deep-Dive: Transparency vs. Value</title>
+<style>
+  :root {
+    --bg: #ffffff; --surface: #f8f9fa; --border: #dee2e6;
+    --text: #212529; --text-dim: #6c757d; --accent: #0969da;
+    --green: #1a7f37; --amber: #9a6700; --rose: #cf222e; --violet: #8250df;
+    --blue-bg: rgba(9,105,218,0.06); --green-bg: rgba(26,127,55,0.06);
+    --amber-bg: rgba(154,103,0,0.06); --rose-bg: rgba(207,34,46,0.06);
+    --violet-bg: rgba(130,80,223,0.06);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem; line-height: 1.65;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 0.5rem; }
+  h2 {
+    font-size: 1.3rem; font-weight: 700; margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb;
+  }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: var(--accent); }
+  p { margin-bottom: 1rem; }
+  .dim { color: var(--text-dim); font-size: 0.85rem; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem; text-align: center;
+  }
+  .kpi .lbl {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin-bottom: 0.5rem;
+  }
+  .kpi .val { font-size: 1.5rem; font-weight: 700; }
+  .kpi .sub { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.3rem; }
+  .val-green { color: var(--green); }
+  .val-rose { color: var(--rose); }
+  .val-amber { color: var(--amber); }
+  .val-accent { color: var(--accent); }
+  .val-violet { color: var(--violet); }
+
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 1rem;
+  }
+  th {
+    text-align: left; padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-dim); font-weight: 600; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+  }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #e9ecef; }
+  tr:last-child td { border-bottom: none; }
+  .r { text-align: right; font-variant-numeric: tabular-nums; }
+  .row-danger { background: rgba(207,34,46,0.05); }
+  .row-warning { background: rgba(154,103,0,0.05); }
+  .row-accent { background: rgba(9,105,218,0.05); }
+
+  .callout {
+    padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1rem 0;
+    border-left: 4px solid;
+  }
+  .callout-danger { background: var(--rose-bg); border-color: var(--rose); }
+  .callout-danger .callout-title { color: var(--rose); }
+  .callout-warning { background: var(--amber-bg); border-color: var(--amber); }
+  .callout-warning .callout-title { color: var(--amber); }
+  .callout-info { background: var(--blue-bg); border-color: var(--accent); }
+  .callout-info .callout-title { color: var(--accent); }
+  .callout-violet { background: var(--violet-bg); border-color: var(--violet); }
+  .callout-violet .callout-title { color: var(--violet); }
+  .callout-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; }
+  .callout p { margin-bottom: 0; font-size: 0.85rem; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .bar-container { margin: 1.5rem 0; }
+  .bar-row { display: flex; align-items: center; margin-bottom: 0.5rem; }
+  .bar-label { width: 160px; flex-shrink: 0; font-size: 0.8rem; font-weight: 600; }
+  .bar-track { flex: 1; height: 28px; background: #eee; border-radius: 4px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 0.72rem; font-weight: 600; color: #fff; transition: width 0.8s ease; }
+  .bar-fill-rose { background: var(--rose); }
+  .bar-fill-amber { background: var(--amber); }
+  .bar-fill-accent { background: var(--accent); }
+  .bar-fill-violet { background: var(--violet); }
+  .bar-count { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.72rem; color: var(--text-dim); }
+
+  .stacked-bar { display: flex; height: 36px; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+  .stacked-seg { display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; color: #fff; }
+
+  .verbatim-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;
+  }
+  .verbatim-card .vcat {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 700; margin-bottom: 0.4rem;
+  }
+  .verbatim-card .vsummary { font-size: 0.82rem; font-style: italic; color: var(--text); margin-bottom: 0.4rem; }
+  .verbatim-card .vfriction { font-size: 0.78rem; color: var(--text-dim); }
+  .pill {
+    display: inline-block; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .pill-rose { background: rgba(207,34,46,0.12); color: var(--rose); }
+  .pill-amber { background: rgba(154,103,0,0.12); color: var(--amber); }
+  .pill-high { background: rgba(207,34,46,0.12); color: var(--rose); }
+  .pill-med { background: rgba(154,103,0,0.12); color: var(--amber); }
+
+  .emotion-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.75rem 0; }
+  .emotion-chip {
+    font-size: 0.7rem; padding: 3px 10px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
+  }
+  .emotion-chip .ecount { font-weight: 700; color: var(--text); margin-left: 4px; }
+
+  .toggle-group { display: flex; gap: 0; margin: 1rem 0; }
+  .toggle-btn {
+    padding: 0.5rem 1.25rem; font-size: 0.8rem; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+    color: var(--text-dim); transition: all 0.2s;
+  }
+  .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+  .toggle-btn:last-child { border-radius: 0 6px 6px 0; }
+  .toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .hidden { display: none; }
+  .source-tag { font-size: 0.65rem; color: var(--text-dim); margin-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>PRS Pricing Deep-Dive: Transparency vs. Value</h1>
+<p class="subtitle">TY25 PRS Survey &middot; ~312K pricing friction points from ~290K unique respondents &middot; Full Season (Nov 2025 &ndash; Jun 2026)</p>
+<p class="dim">Companion analysis to <a href="ty25_voc_cross_source_analysis.html">TY25 VoC Cross-Source Analysis</a>. Focused exclusively on PRS pricing friction, decomposed into <strong>"Too Expensive"</strong> (value perception) vs. <strong>"Surprise / Transparency"</strong> (hidden fees, misleading pricing, unexpected charges).</p>
+
+<hr class="divider">
+
+<!-- ═══════ HEADLINE FINDINGS ═══════ -->
+<h2>Headline Findings</h2>
+
+<div class="grid-2">
+  <div class="callout callout-danger">
+    <div class="callout-title">1. "Too Expensive" dominates at 66% of all pricing friction</div>
+    <p>205K friction points from ~199K respondents — customers know the price and think it's too much. The signal is overwhelmingly a <em>value perception</em> problem, not an information problem. This is consistent with the cross-source finding (89% value in the original analysis) and persists across the full season.</p>
+  </div>
+  <div class="callout callout-warning">
+    <div class="callout-title">2. Transparency friction is real, more severe, and more emotional</div>
+    <p>61K friction points (~59K respondents) cite hidden fees, misleading pricing, unexpected charges, or unclear disclosure. While smaller in volume, transparency friction runs <strong>hotter</strong>: 78% high severity vs 69% for value, 8.5% negative sentiment vs 4.5%, and emotions like "deceived" and "distrustful" appear almost exclusively here.</p>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">3. The emotional signatures are different &mdash; and actionable</div>
+  <p>"Too Expensive" customers are frustrated but often <em>resigned</em> — they know the price, they pay it, they resent it. Transparency customers feel <em>deceived</em> — they didn't know what they'd pay, and their trust is damaged. The former is a pricing strategy problem. The latter is a UX and communication problem with a clearer fix path.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ CATEGORY SPLIT ═══════ -->
+<h2>Category Split: Volume, Severity, and Sentiment</h2>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="lbl">"Too Expensive" (Value)</div>
+    <div class="val val-rose">205K</div>
+    <div class="sub">199K unique respondents &middot; 66% of total</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">"Surprise / Transparency"</div>
+    <div class="val val-amber">61K</div>
+    <div class="sub">59K unique respondents &middot; 19% of total</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Upselling Fatigue</div>
+    <div class="val val-accent">32K</div>
+    <div class="sub">32K unique respondents &middot; 10% of total</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Other Pricing</div>
+    <div class="val val-violet">15K</div>
+    <div class="sub">14K unique respondents &middot; 5% of total</div>
+  </div>
+</div>
+
+<h3>Severity Comparison</h3>
+<table>
+  <thead>
+    <tr><th>Category</th><th class="r">Total</th><th class="r">% High</th><th class="r">% Medium</th><th class="r">% Low</th><th class="r">% Neg. Sentiment</th><th class="r">% Pos. Sentiment</th></tr>
+  </thead>
+  <tbody>
+    <tr class="row-danger"><td><strong>Too Expensive (Value)</strong></td><td class="r">205,189</td><td class="r">68.7%</td><td class="r">29.3%</td><td class="r">1.2%</td><td class="r">4.5%</td><td class="r">0.1%</td></tr>
+    <tr class="row-warning"><td><strong>Surprise / Transparency</strong></td><td class="r">60,859</td><td class="r">78.3%</td><td class="r">14.6%</td><td class="r">0.4%</td><td class="r">8.5%</td><td class="r">0.2%</td></tr>
+    <tr class="row-accent"><td>Upselling Fatigue</td><td class="r">31,991</td><td class="r">59.7%</td><td class="r">38.6%</td><td class="r">0.4%</td><td class="r">8.6%</td><td class="r">0.4%</td></tr>
+    <tr><td>Other Pricing</td><td class="r">14,519</td><td class="r">72.7%</td><td class="r">22.2%</td><td class="r">0.8%</td><td class="r">8.2%</td><td class="r">0.3%</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-warning">
+  <div class="callout-title">Transparency friction is disproportionately severe</div>
+  <p>78% of transparency frictions are rated <strong>high severity</strong> vs 69% for value. And negative sentiment runs nearly 2x (8.5% vs 4.5%). The reason: "Too Expensive" customers are largely <em>completers</em> — they paid and filed. Their frustration is post-hoc. Transparency customers often feel <em>tricked</em> — the emotional sting is sharper even if they ultimately completed.</p>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ STACKED BAR VIZ ═══════ -->
+<h2>Proportional View</h2>
+<p class="dim">Share of total pricing friction by category.</p>
+
+<div class="stacked-bar">
+  <div class="stacked-seg" style="width:65.6%;background:var(--rose)">Too Expensive 66%</div>
+  <div class="stacked-seg" style="width:19.5%;background:var(--amber)">Transparency 19%</div>
+  <div class="stacked-seg" style="width:10.2%;background:var(--accent)">Upselling 10%</div>
+  <div class="stacked-seg" style="width:4.6%;background:var(--violet)">Other 5%</div>
+</div>
+
+<h3>Severity stacked view</h3>
+<p class="dim">Within each category, proportion rated High / Medium / Low severity.</p>
+
+<div class="bar-container">
+  <div class="bar-row">
+    <div class="bar-label" style="color:var(--rose)">Too Expensive</div>
+    <div class="bar-track">
+      <div style="display:flex;height:100%">
+        <div style="width:68.7%;background:var(--rose);border-radius:4px 0 0 4px" class="stacked-seg">69% High</div>
+        <div style="width:29.3%;background:rgba(207,34,46,0.35)" class="stacked-seg">29% Med</div>
+        <div style="width:2%;background:rgba(207,34,46,0.15);border-radius:0 4px 4px 0" class="stacked-seg"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label" style="color:var(--amber)">Transparency</div>
+    <div class="bar-track">
+      <div style="display:flex;height:100%">
+        <div style="width:78.3%;background:var(--amber);border-radius:4px 0 0 4px" class="stacked-seg">78% High</div>
+        <div style="width:14.6%;background:rgba(154,103,0,0.35)" class="stacked-seg">15%</div>
+        <div style="width:7.1%;background:rgba(154,103,0,0.15);border-radius:0 4px 4px 0" class="stacked-seg"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label" style="color:var(--accent)">Upselling</div>
+    <div class="bar-track">
+      <div style="display:flex;height:100%">
+        <div style="width:59.7%;background:var(--accent);border-radius:4px 0 0 4px" class="stacked-seg">60% High</div>
+        <div style="width:38.6%;background:rgba(9,105,218,0.35)" class="stacked-seg">39% Med</div>
+        <div style="width:1.7%;background:rgba(9,105,218,0.15);border-radius:0 4px 4px 0" class="stacked-seg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ SUB-TYPE BREAKDOWNS ═══════ -->
+<h2>Sub-Type Breakdown</h2>
+<p class="dim">Top friction sub-types within each target category (200+ occurrences). Click a category to filter.</p>
+
+<div class="toggle-group">
+  <button class="toggle-btn active" onclick="showTab('transparency')">Surprise / Transparency</button>
+  <button class="toggle-btn" onclick="showTab('value')">Too Expensive (Value)</button>
+</div>
+
+<div id="tab-transparency">
+<table>
+  <thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead>
+  <tbody>
+    <tr class="row-danger"><td>pricing transparency issue</td><td class="r">3,446</td><td class="r">76%</td></tr>
+    <tr class="row-danger"><td>unexpected pricing charge</td><td class="r">2,853</td><td class="r">86%</td></tr>
+    <tr class="row-danger"><td>pricing discrepancy</td><td class="r">1,572</td><td class="r">84%</td></tr>
+    <tr class="row-danger"><td>unexpected billing charge</td><td class="r">1,342</td><td class="r">82%</td></tr>
+    <tr class="row-warning"><td>pricing expectation mismatch</td><td class="r">1,226</td><td class="r">50%</td></tr>
+    <tr class="row-danger"><td>misleading pricing</td><td class="r">1,112</td><td class="r">92%</td></tr>
+    <tr class="row-danger"><td>unexpected pricing charges</td><td class="r">830</td><td class="r">86%</td></tr>
+    <tr class="row-danger"><td>unexpected charges</td><td class="r">757</td><td class="r">87%</td></tr>
+    <tr class="row-danger"><td>misleading pricing model</td><td class="r">733</td><td class="r">95%</td></tr>
+    <tr class="row-warning"><td>pricing transparency</td><td class="r">715</td><td class="r">44%</td></tr>
+    <tr class="row-danger"><td>hidden pricing fees</td><td class="r">673</td><td class="r">89%</td></tr>
+    <tr class="row-danger"><td>unclear pricing disclosure</td><td class="r">643</td><td class="r">82%</td></tr>
+    <tr class="row-warning"><td>pricing confusion</td><td class="r">636</td><td class="r">45%</td></tr>
+    <tr class="row-danger"><td>hidden fees, pricing transparency</td><td class="r">631</td><td class="r">90%</td></tr>
+    <tr class="row-danger"><td>misleading pricing claims</td><td class="r">587</td><td class="r">95%</td></tr>
+    <tr class="row-danger"><td>hidden fees</td><td class="r">576</td><td class="r">87%</td></tr>
+    <tr class="row-danger"><td>unclear pricing communication</td><td class="r">564</td><td class="r">67%</td></tr>
+    <tr class="row-danger"><td>deceptive pricing model</td><td class="r">548</td><td class="r">84%</td></tr>
+    <tr class="row-danger"><td>deceptive pricing practices</td><td class="r">528</td><td class="r">78%</td></tr>
+    <tr class="row-danger"><td>pricing deception</td><td class="r">483</td><td class="r">84%</td></tr>
+    <tr class="row-danger"><td>pricing mismatch</td><td class="r">480</td><td class="r">92%</td></tr>
+    <tr class="row-danger"><td>unclear pricing structure</td><td class="r">473</td><td class="r">72%</td></tr>
+    <tr class="row-danger"><td>unexpected charge</td><td class="r">438</td><td class="r">87%</td></tr>
+  </tbody>
+</table>
+<div class="callout callout-warning">
+  <div class="callout-title">Three distinct transparency failure modes</div>
+  <p><strong>Late disclosure:</strong> "pricing transparency issue" + "unclear pricing disclosure" + "pricing confusion" (~4.8K) &mdash; price shown too late in the flow. <strong>Unexpected charges:</strong> "unexpected pricing charge" + "unexpected billing charge" + "unexpected charges" (~5K) &mdash; charges customers didn't expect at all. <strong>Perceived deception:</strong> "misleading pricing" + "deceptive pricing model" + "pricing deception" (~2.1K) &mdash; customers who feel actively misled. The first two are UX-fixable. The third is a brand trust risk.</p>
+</div>
+</div>
+
+<div id="tab-value" class="hidden">
+<table>
+  <thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead>
+  <tbody>
+    <tr class="row-danger"><td>pricing concern</td><td class="r">186,714</td><td class="r">68%</td></tr>
+    <tr class="row-danger"><td>pricing too high</td><td class="r">4,011</td><td class="r">88%</td></tr>
+    <tr class="row-warning"><td>pricing increase</td><td class="r">1,830</td><td class="r">59%</td></tr>
+    <tr class="row-danger"><td>pricing barrier</td><td class="r">1,599</td><td class="r">88%</td></tr>
+    <tr class="row-warning"><td>pricing change</td><td class="r">836</td><td class="r">64%</td></tr>
+    <tr class="row-danger"><td>pricing model change</td><td class="r">783</td><td class="r">89%</td></tr>
+    <tr class="row-warning"><td>pricing concerns</td><td class="r">670</td><td class="r">52%</td></tr>
+    <tr class="row-danger"><td>excessive pricing/fees</td><td class="r">598</td><td class="r">90%</td></tr>
+    <tr class="row-danger"><td>excessive pricing</td><td class="r">591</td><td class="r">92%</td></tr>
+    <tr class="row-danger"><td>pricing too expensive</td><td class="r">373</td><td class="r">90%</td></tr>
+    <tr class="row-danger"><td>high pricing</td><td class="r">277</td><td class="r">78%</td></tr>
+    <tr class="row-danger"><td>excessive pricing fees</td><td class="r">251</td><td class="r">88%</td></tr>
+    <tr class="row-danger"><td>excessive pricing and fees</td><td class="r">244</td><td class="r">96%</td></tr>
+  </tbody>
+</table>
+<div class="callout callout-danger">
+  <div class="callout-title">"Pricing concern" alone is 91% of the value category</div>
+  <p>The generic "pricing concern" label dominates (187K). This is the LLM's catch-all for "it costs too much." The more specific sub-types — "pricing too high", "pricing barrier", "excessive pricing" — represent the more pointed complaints where customers name the price or compare to competitors. Only 2.4K cite "pricing increase" or "pricing change," suggesting most frustration is about the absolute level, not a delta from last year.</p>
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ EMOTIONAL SIGNATURE ═══════ -->
+<h2>Emotional Signatures</h2>
+<p class="dim">Top emotions detected in customer experiences within each category. Emotions are LLM-classified from PRS survey text.</p>
+
+<div class="grid-2">
+  <div>
+    <h3 style="color:var(--amber)">Surprise / Transparency</h3>
+    <div class="emotion-grid">
+      <div class="emotion-chip">frustrated <span class="ecount">47,922</span></div>
+      <div class="emotion-chip">angry <span class="ecount">6,552</span></div>
+      <div class="emotion-chip">disappointed <span class="ecount">2,382</span></div>
+      <div class="emotion-chip">confused <span class="ecount">1,573</span></div>
+      <div class="emotion-chip">satisfied <span class="ecount">529</span></div>
+      <div class="emotion-chip">concerned <span class="ecount">393</span></div>
+      <div class="emotion-chip">surprised <span class="ecount">311</span></div>
+      <div class="emotion-chip">uncertain <span class="ecount">282</span></div>
+      <div class="emotion-chip" style="border-color:var(--rose);color:var(--rose)">deceived <span class="ecount">175</span></div>
+      <div class="emotion-chip">surprised, frustrated <span class="ecount">156</span></div>
+      <div class="emotion-chip" style="border-color:var(--rose);color:var(--rose)">distrustful <span class="ecount">84</span></div>
+      <div class="emotion-chip">disgusted <span class="ecount">50</span></div>
+    </div>
+    <div class="callout callout-warning" style="margin-top:0.75rem">
+      <div class="callout-title">Trust-damaging emotions concentrated here</div>
+      <p>"Deceived" (175), "distrustful" (84), and "disgusted" (50) appear almost exclusively in transparency friction. These are <em>brand-threatening</em> emotions — they signal customers questioning Intuit's integrity, not just its prices.</p>
+    </div>
+  </div>
+  <div>
+    <h3 style="color:var(--rose)">Too Expensive (Value)</h3>
+    <div class="emotion-grid">
+      <div class="emotion-chip">frustrated <span class="ecount">159,405</span></div>
+      <div class="emotion-chip">dissatisfied <span class="ecount">10,620</span></div>
+      <div class="emotion-chip">concerned <span class="ecount">7,832</span></div>
+      <div class="emotion-chip">angry <span class="ecount">6,217</span></div>
+      <div class="emotion-chip">disappointed <span class="ecount">5,383</span></div>
+      <div class="emotion-chip">satisfied <span class="ecount">3,909</span></div>
+      <div class="emotion-chip" style="border-color:var(--accent);color:var(--accent)">ambivalent <span class="ecount">3,171</span></div>
+      <div class="emotion-chip">uncertain <span class="ecount">1,300</span></div>
+      <div class="emotion-chip" style="border-color:var(--green);color:var(--green)">satisfied but concerned <span class="ecount">1,293</span></div>
+      <div class="emotion-chip">conflicted <span class="ecount">524</span></div>
+      <div class="emotion-chip">resigned <span class="ecount">177</span></div>
+      <div class="emotion-chip">cost-conscious <span class="ecount">59</span></div>
+    </div>
+    <div class="callout callout-danger" style="margin-top:0.75rem">
+      <div class="callout-title">Ambivalence and resignation are the value fingerprint</div>
+      <p>"Ambivalent" (3.2K), "satisfied but concerned" (1.3K), "conflicted" (524), and "resigned" (177) are largely absent from transparency friction. These customers <em>like the product</em> but feel the price is unfair. They're the most churn-vulnerable: one competitor offering equivalent quality at lower cost converts them.</p>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ VERBATIMS ═══════ -->
+<h2>What Customers Are Actually Saying</h2>
+<p class="dim">High-severity friction points with customer summaries from PRS survey responses. All quotes are LLM-summarized from original text (PII-sanitized).</p>
+
+<div class="toggle-group">
+  <button class="toggle-btn active" onclick="showVerbTab('vtransparency')">Surprise / Transparency</button>
+  <button class="toggle-btn" onclick="showVerbTab('vvalue')">Too Expensive (Value)</button>
+</div>
+
+<div id="vtransparency">
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--amber)">Deceptive pricing &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Customer is satisfied with TurboTax Expert service quality, but expresses strong frustration with pricing practices. They describe the upgrade/downgrade process as deceptively difficult and criticize aggressive, last-minute discount tactics that feel manipulative. Despite product satisfaction, they switched to a competitor due to perceived pricing deception."</div>
+    <div class="vfriction">Lack of transparent, upfront pricing. Customer criticizes opaque pricing practices and aggressive upselling tactics that obscure true costs.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--amber)">Forced upgrade &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Customer felt tricked into Expert Premium service through an auto-committing recommendation screen. Despite not requesting or using expert advice, they were charged $209."</div>
+    <div class="vfriction">Product recommendation screen for Expert Premium automatically committed customer to paid service without explicit consent.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--amber)">Late disclosure &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Customer experienced significant frustration due to unclear communication about separate payment requirements for TurboTax online vs desktop. After purchasing desktop, was forced to use online product unaware of additional cost. NPS score of 0."</div>
+    <div class="vfriction">Online product payment requirement was not clearly communicated at purchase. Customer believed desktop payment covered both.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--amber)">Bait-and-switch &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Customer attempted to access the advertised $50 Live Tax Advisor service but received a pitch to sign up for a $129 Advisor subscription, which customer perceived as bait and switch."</div>
+    <div class="vfriction">Unable to contact advertised $50 Live Tax Advisor. Received pitch for $129 subscription instead.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--amber)">Free-to-paid surprise &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Customer unable to file simple tax return for free despite TurboTax's advertising. NPS 2/10 due to disconnect between marketing promises and actual product experience."</div>
+    <div class="vfriction">Discrepancy between advertising and actual free filing availability. Marketing claims free filing but customer unable to access this feature.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--amber)">Hidden checkout fees &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Customer appreciates core functionality but strongly criticizes hidden fees, aggressive upselling, and confusing interface that makes it difficult to avoid unwanted upgrades. NPS 4/10."</div>
+    <div class="vfriction">Hidden fees throughout the experience that are not transparent upfront. Customer reports discovering unexpected charges and feels misled.</div>
+  </div>
+</div>
+
+<div id="vvalue" class="hidden">
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--rose)">Absolute price &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Used to be cheaper to file, but now the lowest fees are almost $200, too expensive to file alone."</div>
+    <div class="vfriction">Current pricing exceeds customer's willingness to pay for self-service filing. Explicit competitor comparison.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--rose)">Value-for-effort &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"It's too expensive when I'm doing all the work."</div>
+    <div class="vfriction">Customer perceives pricing as disproportionate to the self-service effort required. The value exchange feels one-sided.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--rose)">Competitor switching &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"I will be filing elsewhere next year, it is way too expensive, and a $40 fee to take the payment out of the return is outrageous. I just found out that H&amp;R Block is cheaper."</div>
+    <div class="vfriction">Explicit churn signal with named competitor. RT fee identified as the breaking point.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--rose)">Simple return premium &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Too expensive for a simple tax return!"</div>
+    <div class="vfriction">Customer with straightforward filing needs perceives pricing as misaligned with complexity of their return.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--rose)">Price increase &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Long-time customer reports paying $** for federal and additional $** for state despite lower income. Perceives pricing as deceptive compared to filing directly on IRS website. References FCC complaints and concern about elderly customers."</div>
+    <div class="vfriction">Customer with low AGI feels pricing is disproportionate to tax complexity. Compares unfavorably to free IRS filing.</div>
+  </div>
+
+  <div class="verbatim-card">
+    <div class="vcat" style="color:var(--rose)">Loyalty penalty &middot; <span class="pill pill-high">High</span></div>
+    <div class="vsummary">"Customer selected least expensive option but was charged the highest price tier, resulting in paying far more than expected. NPS 7/10 despite pricing frustration."</div>
+    <div class="vfriction">Gap between selected pricing tier and actual charge. Long-time customer feels penalized for loyalty rather than rewarded.</div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════ SO WHAT ═══════ -->
+<h2>So What: Implications</h2>
+
+<div class="grid-2">
+  <div class="callout callout-danger">
+    <div class="callout-title">For "Too Expensive" (Value) &mdash; 205K friction points</div>
+    <p>This is a pricing <em>strategy</em> problem, not a UX problem. Customers know the price. They paid it. They think it's too much. The emotional signature (ambivalent, resigned, satisfied-but-concerned) suggests these are customers who <em>like</em> TurboTax but would leave for equivalent quality at a lower price. The $40 RT fee and state filing fees appear repeatedly as specific triggers.</p>
+  </div>
+  <div class="callout callout-warning">
+    <div class="callout-title">For "Surprise / Transparency" &mdash; 61K friction points</div>
+    <p>This is a <em>fixable UX and communication</em> problem. Three concrete failure modes: (1) <strong>Late disclosure</strong> — pricing shown at end of flow, not beginning. (2) <strong>Unexpected add-on charges</strong> — state filing fees, RT fees, Expert Assist charges appearing without warning. (3) <strong>Perceived bait-and-switch</strong> — free-to-paid conversion feeling deceptive. Each has a clear design intervention. The emotional payoff (reducing "deceived" and "distrustful") is high relative to the effort.</p>
+  </div>
+</div>
+
+<div class="callout callout-violet">
+  <div class="callout-title">Bottom line</div>
+  <p>Transparency improvements <em>have</em> reduced the surprise signal from prior years (19% of total pricing friction, down from higher rates in earlier analyses), but 61K friction points is still a large addressable pool. The emotional toxicity of transparency failures — trust damage, deception perception — makes them worth prioritizing even at lower volume. Value perception is the bigger number, but the levers are strategic (pricing, packaging, competitive positioning), not tactical.</p>
+</div>
+
+<p class="source-tag">Source: <code>voc_7216_dwh.structured_extracts</code> &middot; <code>source_type = 'survey'</code> (PRS) &middot; TY 2025 &middot; Full season &middot; Jun 2026</p>
+
+</div>
+
+<script>
+function showTab(tab) {
+  document.getElementById('tab-transparency').classList.toggle('hidden', tab !== 'transparency');
+  document.getElementById('tab-value').classList.toggle('hidden', tab !== 'value');
+  const btns = document.querySelectorAll('.toggle-group')[0].querySelectorAll('.toggle-btn');
+  btns[0].classList.toggle('active', tab === 'transparency');
+  btns[1].classList.toggle('active', tab === 'value');
+}
+function showVerbTab(tab) {
+  document.getElementById('vtransparency').classList.toggle('hidden', tab !== 'vtransparency');
+  document.getElementById('vvalue').classList.toggle('hidden', tab !== 'vvalue');
+  const btns = document.querySelectorAll('.toggle-group')[1].querySelectorAll('.toggle-btn');
+  btns[0].classList.toggle('active', tab === 'vtransparency');
+  btns[1].classList.toggle('active', tab === 'vvalue');
+}
+</script>
+</body>
+</html>

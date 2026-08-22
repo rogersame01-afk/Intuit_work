@@ -1,0 +1,55 @@
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_gateway_answer_ty24 as (
+select c.pseudonym_id
+    , c.ui_object_detail
+    , c.date_time last_gateway_answer_timestamp
+    , row_number() over(partition by c.pseudonym_id order by c.date_time desc) as rnum
+from tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and c.screen = 'aca-aca5-views-0'
+    and c.ui_object_detail in('aca-aca5-views-0-fields-choice-Has1095A-choices-0','aca-aca5-views-0-fields-choice-Has1095A-choices-1')
+    and c.load_date < '20250215'
+)
+;
+
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_gateway_answer_ty24_part2 as (
+select c.pseudonym_id
+    , c.ui_object_detail
+    , c.date_time last_gateway_answer_timestamp
+    , row_number() over(partition by c.pseudonym_id order by c.date_time desc) as rnum
+from tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and c.screen = 'aca-aca5-views-0'
+    and c.ui_object_detail in('aca-aca5-views-0-fields-choice-Has1095A-choices-0','aca-aca5-views-0-fields-choice-Has1095A-choices-1')
+    and c.load_date > '20250214'
+)
+;
+
+
+with ans as (
+    select * from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_gateway_answer_ty24
+    
+    union
+    
+    select * from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_gateway_answer_ty24_part2
+),
+
+base as (
+    select a.pseudonym_id
+        , a.ui_object_detail
+        , a.last_gateway_answer_timestamp
+        , a.rnum
+        , pam.auth_id
+        , pam.completed_flag
+        , pam.customer_type_rollup
+    from ans a
+    inner join tax_rpt.product_analytics_master pam
+        on a.pseudonym_id = pam.pseudonym_id
+)
+
+select b.ui_object_detail
+    , count(distinct b.auth_id)
+from base b
+where b.completed_flag = 1
+group by 1
+order by 1
+;

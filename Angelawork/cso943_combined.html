@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSO-943 Campaign Contact Rate, AHT &amp; Refile Success Analysis</title>
+<style>
+:root{--intuit-blue:#0077C5;--intuit-dark:#1a1a2e;--green:#2ecc71;--red:#e74c3c;--gray-light:#f8f9fa;--gray-mid:#e9ecef;--gray-text:#6c757d;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-light);color:#333;line-height:1.6;}
+.header{background:linear-gradient(135deg,var(--intuit-dark),#16213e);color:white;padding:2.5rem 2rem;text-align:center;}
+.header h1{font-size:1.8rem;margin-bottom:0.5rem;}
+.header p{color:rgba(255,255,255,0.75);font-size:0.9rem;}
+.container{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;margin-bottom:2rem;}
+.card{background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.card h3{font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-text);margin-bottom:0.75rem;}
+.card .value{font-size:1.8rem;font-weight:700;color:var(--intuit-dark);}
+.card .sub{font-size:0.85rem;color:var(--gray-text);margin-top:0.25rem;}
+.section{margin-bottom:2.5rem;}
+.section h2{font-size:1.3rem;margin-bottom:1rem;color:var(--intuit-dark);border-bottom:2px solid var(--intuit-blue);padding-bottom:0.5rem;display:inline-block;}
+table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-top:0.75rem;}
+thead{background:var(--intuit-dark);color:white;}
+th{padding:0.85rem 1rem;text-align:left;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;}
+td{padding:0.75rem 1rem;border-bottom:1px solid var(--gray-mid);font-size:0.9rem;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(0,119,197,0.03);}
+tfoot td{background:var(--gray-light);font-weight:600;border-top:2px solid var(--gray-mid);}
+.delta-pos{color:var(--red);font-weight:600;}
+.delta-neg{color:var(--green);font-weight:600;}
+.delta-good{color:var(--green);font-weight:600;}
+.badge{display:inline-block;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.75rem;font-weight:600;}
+.badge-sig{background:#d4edda;color:#155724;}
+.badge-ns{background:#f8f9fa;color:#6c757d;}
+.methodology{background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);font-size:0.9rem;}
+.methodology h3{margin-bottom:0.5rem;color:var(--intuit-dark);}
+.methodology ul{padding-left:1.5rem;margin-top:0.5rem;}
+.methodology li{margin-bottom:0.3rem;}
+.footer{text-align:center;padding:1.5rem;color:var(--gray-text);font-size:0.8rem;}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>CSO-943: Campaign vs. Holdout — Contact Rate, AHT &amp; Refile Success</h1>
+<p>Source: <code>cgan_ustax_published.aw_cso_943</code> &times; <code>ent_care_7216_dwh.rpt_cct_interactions</code> &times; <code>dlprd.tax_rpt.product_analytics_master</code><br>Canvas <code>943_CSO_TY25-E-file-Reject-IRS_5k_259k_medium_EM</code> &bull; Send date 2026-05-19 (PT); contacts &amp; refiles counted on/after send</p>
+</div>
+<div class="container">
+<div class="summary-cards">
+<div class="card"><h3>Total Population</h3><div class="value">519,287</div><div class="sub">3 cells &times; campaign/holdout</div></div>
+<div class="card"><h3>Significant Contact-Rate Lift</h3><div class="value">Cell None</div><div class="sub">Two-proportion z-test, p&lt;0.05</div></div>
+<div class="card"><h3>Significant AHT Difference</h3><div class="value">Cell None</div><div class="sub">Welch's t-test, p&lt;0.05</div></div>
+<div class="card"><h3>Significant Refile-Rate Lift</h3><div class="value">All 3 cells</div><div class="sub">Campaign &gt; holdout, two-proportion z-test, p&lt;0.05</div></div>
+</div>
+
+<div class="section">
+<h2>Contact Rate by Cell</h2>
+<table>
+<thead><tr><th>Cell</th><th>Group</th><th>Population</th><th>Contactors</th><th>Contact Rate</th><th>Delta (ppts)</th><th>Z-stat</th><th>P-value</th><th>Significant?</th></tr></thead>
+<tbody>
+        <tr>
+            <td rowspan="2"><strong>001</strong></td>
+            <td>Holdout</td><td>116,492</td><td>1,283</td><td>1.101%</td>
+            <td rowspan="2" class="delta-pos">+0.067</td>
+            <td rowspan="2">1.522</td><td rowspan="2">0.128</td><td rowspan="2"><span class="badge badge-ns">Not sig.</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>116,854</td><td>1,365</td><td>1.168%</td></tr>
+        <tr>
+            <td rowspan="2"><strong>002</strong></td>
+            <td>Holdout</td><td>63,336</td><td>812</td><td>1.282%</td>
+            <td rowspan="2" class="delta-pos">+0.043</td>
+            <td rowspan="2">0.678</td><td rowspan="2">0.498</td><td rowspan="2"><span class="badge badge-ns">Not sig.</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>63,003</td><td>835</td><td>1.325%</td></tr>
+        <tr>
+            <td rowspan="2"><strong>003</strong></td>
+            <td>Holdout</td><td>79,815</td><td>1,112</td><td>1.393%</td>
+            <td rowspan="2" class="delta-pos">+0.027</td>
+            <td rowspan="2">0.455</td><td rowspan="2">0.649</td><td rowspan="2"><span class="badge badge-ns">Not sig.</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>79,787</td><td>1,133</td><td>1.420%</td></tr>
+</tbody></table>
+</div>
+
+<div class="section">
+<h2>Average Handle Time (AHT) by Cell</h2>
+<table>
+<thead><tr><th>Cell</th><th>Group</th><th>Contacts (N)</th><th>Avg AHT (sec)</th><th>Avg AHT (min)</th><th>Delta (sec)</th><th>T-stat</th><th>P-value</th><th>Significant?</th></tr></thead>
+<tbody>
+        <tr>
+            <td rowspan="2"><strong>001</strong></td>
+            <td>Holdout</td><td>1,937</td><td>1143.3</td><td>19.1</td>
+            <td rowspan="2" class="delta-neg">-6.1</td>
+            <td rowspan="2">-0.152</td><td rowspan="2">0.879</td><td rowspan="2"><span class="badge badge-ns">Not sig.</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>2,112</td><td>1137.2</td><td>19.0</td></tr>
+        <tr>
+            <td rowspan="2"><strong>002</strong></td>
+            <td>Holdout</td><td>1,695</td><td>925.8</td><td>15.4</td>
+            <td rowspan="2" class="delta-neg">-0.8</td>
+            <td rowspan="2">-0.019</td><td rowspan="2">0.985</td><td rowspan="2"><span class="badge badge-ns">Not sig.</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>1,715</td><td>925.0</td><td>15.4</td></tr>
+        <tr>
+            <td rowspan="2"><strong>003</strong></td>
+            <td>Holdout</td><td>2,156</td><td>986.5</td><td>16.4</td>
+            <td rowspan="2" class="delta-pos">+59.9</td>
+            <td rowspan="2">1.692</td><td rowspan="2">0.091</td><td rowspan="2"><span class="badge badge-ns">Not sig.</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>2,185</td><td>1046.4</td><td>17.4</td></tr>
+</tbody></table>
+</div>
+
+<div class="section">
+<h2>Refile Success Rate by Cell</h2>
+<p style="font-size:0.9rem;color:var(--gray-text);margin-bottom:0.25rem;">Among the rejected population (all customers had a federal e-file rejection), share who resolved — federal e-file <em>accepted</em> or <em>printed to mail</em> — on/after the 2026-05-19 send date. A positive delta (campaign higher) is favorable.</p>
+<table>
+<thead><tr><th>Cell</th><th>Group</th><th>Rejecters (denom.)</th><th>Resolved (num.)</th><th>Refile Success Rate</th><th>Delta (ppts)</th><th>Z-stat</th><th>P-value</th><th>Significant?</th></tr></thead>
+<tbody>
+        <tr>
+            <td rowspan="2"><strong>001</strong></td>
+            <td>Holdout</td><td>116,492</td><td>3,653</td><td>3.136%</td>
+            <td rowspan="2" class="delta-good">+0.205</td>
+            <td rowspan="2">2.798</td><td rowspan="2">0.0051</td><td rowspan="2"><span class="badge badge-sig">Significant</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>116,854</td><td>3,904</td><td>3.341%</td></tr>
+        <tr>
+            <td rowspan="2"><strong>002</strong></td>
+            <td>Holdout</td><td>63,336</td><td>2,569</td><td>4.056%</td>
+            <td rowspan="2" class="delta-good">+0.763</td>
+            <td rowspan="2">6.583</td><td rowspan="2">&lt;0.0001</td><td rowspan="2"><span class="badge badge-sig">Significant</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>63,002</td><td>3,036</td><td>4.819%</td></tr>
+        <tr>
+            <td rowspan="2"><strong>003</strong></td>
+            <td>Holdout</td><td>79,815</td><td>3,527</td><td>4.419%</td>
+            <td rowspan="2" class="delta-good">+0.285</td>
+            <td rowspan="2">2.727</td><td rowspan="2">0.0064</td><td rowspan="2"><span class="badge badge-sig">Significant</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>79,787</td><td>3,753</td><td>4.704%</td></tr>
+</tbody>
+<tfoot>
+        <tr>
+            <td rowspan="2"><strong>All</strong></td>
+            <td>Holdout</td><td>259,643</td><td>9,749</td><td>3.755%</td>
+            <td rowspan="2" class="delta-good">+0.364</td>
+            <td rowspan="2">6.736</td><td rowspan="2">&lt;0.0001</td><td rowspan="2"><span class="badge badge-sig">Significant</span></td>
+        </tr>
+        <tr><td>Campaign</td><td>259,643</td><td>10,693</td><td>4.118%</td></tr>
+</tfoot>
+</table>
+</div>
+
+<div class="section">
+<h2>Methodology</h2>
+<div class="methodology">
+<h3>Data Sources</h3>
+<ul>
+<li><strong>Population:</strong> <code>cgan_ustax_published.aw_cso_943</code> — one row per auth_id, 3 cells &times; campaign/holdout</li>
+<li><strong>Contacts:</strong> <code>ent_care_7216_dwh.rpt_cct_interactions</code> — tax_year=2025, bu='cg', handled legs (customer_handle_flg=1)</li>
+<li><strong>Refiles:</strong> <code>dlprd.tax_rpt.product_analytics_master</code> (pam), tax_year=2025 — <code>first_fed_efile_rejected_date</code>, <code>first_fed_efile_accepted_date</code>, <code>first_print_to_mail_date_adj</code></li>
+<li><strong>Send date:</strong> Braze canvas <code>943_CSO_TY25-E-file-Reject-IRS_5k_259k_medium_EM</code> delivered 2026-05-19 (PT), confirmed from <code>dlprd.tax_src.src_braze_turbotax_email_send</code>; only contacts &amp; refiles on/after this date are counted</li>
+<li><strong>Join key:</strong> auth_id (pam joined at tax_year=2025 — one row per auth)</li>
+</ul>
+<h3 style="margin-top:1rem;">Metric Definitions</h3>
+<ul>
+<li><strong>Contact Rate</strong> = distinct auth_ids with &ge;1 handled contact &divide; cell population</li>
+<li><strong>AHT</strong> = mean <code>handle_seconds_dur</code> across handled contact legs</li>
+<li><strong>Refile Success Rate</strong> = distinct auth_ids who resolved (fed e-file accepted <em>or</em> printed to mail on/after 2026-05-19) &divide; distinct auth_ids with a federal e-file rejection. All customers in the population had a rejection, so the denominator equals the cell population.</li>
+</ul>
+<h3 style="margin-top:1rem;">Statistical Tests</h3>
+<ul>
+<li><strong>Contact Rate:</strong> two-proportion Z-test (campaign vs. holdout per cell)</li>
+<li><strong>AHT:</strong> Welch's t-test (unequal variance, large-sample normal approximation)</li>
+<li><strong>Refile Success Rate:</strong> two-proportion Z-test (campaign vs. holdout per cell, and pooled across cells)</li>
+<li><strong>Significance threshold:</strong> &alpha; = 0.05 (two-tailed)</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="footer"><p>Generated 2026-07-30 20:00 PT | CG Analytics</p></div>
+</body></html>

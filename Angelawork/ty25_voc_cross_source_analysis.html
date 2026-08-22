@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TY25 VOC Cross-Source Analysis</title>
+<style>
+  :root {
+    --bg: #ffffff; --surface: #f8f9fa; --border: #dee2e6;
+    --text: #212529; --text-dim: #6c757d; --accent: #0969da;
+    --green: #1a7f37; --amber: #9a6700; --rose: #cf222e; --violet: #8250df;
+    --blue-bg: rgba(9,105,218,0.06); --green-bg: rgba(26,127,55,0.06);
+    --amber-bg: rgba(154,103,0,0.06); --rose-bg: rgba(207,34,46,0.06);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem; line-height: 1.65;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; color: var(--text); }
+  .subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 0.5rem; }
+  h2 {
+    font-size: 1.3rem; font-weight: 700; margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; color: var(--text);
+  }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: var(--accent); }
+  p { margin-bottom: 1rem; }
+  .dim { color: var(--text-dim); font-size: 0.85rem; }
+  .small { font-size: 0.8rem; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem; text-align: center;
+  }
+  .kpi .lbl {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin-bottom: 0.5rem;
+  }
+  .kpi .val { font-size: 1.5rem; font-weight: 700; }
+  .val-green { color: var(--green); }
+  .val-rose { color: var(--rose); }
+  .val-amber { color: var(--amber); }
+  .val-accent { color: var(--accent); }
+
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 1rem;
+  }
+  th {
+    text-align: left; padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-dim); font-weight: 600; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+  }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #e9ecef; }
+  tr:last-child td { border-bottom: none; }
+  .r { text-align: right; font-variant-numeric: tabular-nums; }
+  .row-danger { background: rgba(207,34,46,0.05); }
+  .row-warning { background: rgba(154,103,0,0.05); }
+  .row-striped:nth-child(even) { background: #f8f9fa; }
+
+  .callout {
+    padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1rem 0;
+    border-left: 4px solid;
+  }
+  .callout-danger { background: var(--rose-bg); border-color: var(--rose); }
+  .callout-danger .callout-title { color: var(--rose); }
+  .callout-warning { background: var(--amber-bg); border-color: var(--amber); }
+  .callout-warning .callout-title { color: var(--amber); }
+  .callout-info { background: var(--blue-bg); border-color: var(--accent); }
+  .callout-info .callout-title { color: var(--accent); }
+  .callout-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; }
+  .callout p { margin-bottom: 0; font-size: 0.85rem; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 1rem; overflow: hidden;
+  }
+  .card-header {
+    padding: 0.75rem 1rem; font-weight: 600; font-size: 0.85rem;
+    border-bottom: 1px solid var(--border); background: #f1f3f5;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; user-select: none;
+  }
+  .card-header:hover { background: #e9ecef; }
+  .card-body { padding: 1rem; }
+  .card.collapsed .card-body { display: none; }
+  .pill {
+    font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.5rem;
+    border-radius: 99px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .pill-rose { background: rgba(207,34,46,0.1); color: var(--rose); }
+  .pill-amber { background: rgba(154,103,0,0.1); color: var(--amber); }
+  .pill-blue { background: rgba(9,105,218,0.1); color: var(--accent); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-5 { grid-template-columns: 1fr; }
+  }
+
+  .verbatim {
+    font-style: italic; color: #495057; font-size: 0.8rem;
+    margin-bottom: 0.75rem; line-height: 1.5; padding-left: 0.75rem;
+    border-left: 2px solid #adb5bd;
+  }
+
+  .footer { color: var(--text-dim); font-size: 0.75rem; margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>TY25 VOC Cross-Source Analysis</h1>
+<p class="subtitle">All 5 source types | voc_7216_dwh.structured_extracts | TY25 filing season (Nov 2025 – Apr 2026)</p>
+<p class="subtitle">Callchat & survey filtered by tax_year = 2025. Community, Reddit, and oop filtered by event_date &ge; 2025-11-01 (tax_year is NULL for these sources). Within-source percentages used throughout to prevent high-volume sources from dominating theme rankings.</p>
+
+<hr class="divider">
+
+<!-- Key Findings -->
+<h2>Key Findings</h2>
+<div class="grid-2">
+  <div class="callout callout-danger">
+    <div class="callout-title">1. Pricing Is the Universal Pain Point</div>
+    <p>It's the #1 friction type in both PRS (128K, 71% high) and MPS (44K, 55% high) and dominates the entire top 12 on Reddit. OOP is almost entirely refund/billing demands. Only callchat and community — where customers are actively trying to file — don't surface pricing. This suggests pricing frustration is real, broad-based, and not just a vocal minority.</p>
+  </div>
+  <div class="callout callout-danger">
+    <div class="callout-title">2. Calculation Errors Are a Mid-Flow Trust Threat</div>
+    <p>Tax calculation errors appear in MPS (14K, 100% high severity), callchat, and community — but are <strong>nearly absent from PRS</strong> (621). This means refund accuracy concern is overwhelmingly a <em>mid-flow</em> signal: users worry their refund looks wrong while still preparing. By the time they reach PRS (post-filing), the concern has either been resolved or has caused them to abandon.</p>
+  </div>
+  <div class="callout callout-warning">
+    <div class="callout-title">3. PRS and MPS Tell Different Stories</div>
+    <p>PRS (post-filing, 76% positive) surfaces pricing and UI frustration from completers. MPS (mid-flow) uniquely surfaces <strong>lack of confidence</strong> (18K) and <strong>support resolution failures</strong> (16K) — signals invisible to PRS because they occur before filing. Neither survey alone gives the full picture; splitting them reveals distinct failure modes at different stages.</p>
+  </div>
+  <div class="callout callout-warning">
+    <div class="callout-title">4. Reddit Is a Leading Indicator of Brand Risk</div>
+    <p>Reddit is 57.4% negative with public calls to "switch to competitor," "warn others," and "discontinue service." These are not resolvable with support — they require product and pricing changes. Reddit sentiment is a leading indicator of churn risk.</p>
+  </div>
+  <div class="callout callout-info">
+    <div class="callout-title">5. Community Reveals Self-Service Gaps</div>
+    <p>Community is where customers go when the product fails silently — calculation errors, import failures, missing features. 0.1% positive sentiment means almost nobody comes to community with good news. Fixing the top community friction types would reduce support contact volume.</p>
+  </div>
+  <div class="callout callout-info">
+    <div class="callout-title">6. OOP Is the Last Resort — 95% Negative</div>
+    <p>Out-of-product contacts are almost uniformly refund/billing disputes. These are customers who have exhausted in-product and support channels. The signal here is not "what's wrong" but "how bad does it get" when other channels fail.</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Source Overview -->
+<h2>Source Landscape</h2>
+<table>
+  <thead><tr><th>Source</th><th class="r">Volume</th><th class="r">% Positive</th><th class="r">% Negative</th><th>Date Range</th><th>Character</th></tr></thead>
+  <tbody>
+    <tr><td>PRS (survey)</td><td class="r">1,997,960</td><td class="r">76.2%</td><td class="r">22.2%</td><td>Nov 16 – Apr 28</td><td>Post-filing product recommendation</td></tr>
+    <tr><td>MPS (survey)</td><td class="r">980,507</td><td class="r">5.5%</td><td class="r">3.5%</td><td>Nov 16 – Apr 28</td><td>Mid-product "Just checking in" intercept; 91% no sentiment label</td></tr>
+    <tr><td>callchat</td><td class="r">2,810,993</td><td class="r">30.5%</td><td class="r">28.3%</td><td>Nov 17 – Apr 23</td><td>Support interactions; neutral-heavy</td></tr>
+    <tr class="row-warning"><td>community</td><td class="r">69,533</td><td class="r">0.1%</td><td class="r">50.9%</td><td>Nov 1 – Apr 27</td><td>Help-seeking; half negative</td></tr>
+    <tr class="row-danger"><td>Reddit</td><td class="r">48,819</td><td class="r">10.6%</td><td class="r">57.4%</td><td>Dec 19 – Apr 27</td><td>Public complaints; majority negative</td></tr>
+    <tr class="row-danger"><td>oop</td><td class="r">2,263</td><td class="r">0.4%</td><td class="r">95.4%</td><td>Nov 1 – Apr 26</td><td>Out-of-product; almost all negative</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <div class="callout-title">Each source tells a different story</div>
+  <p>PRS captures the satisfied majority (76% positive) with pricing as the dominant friction. MPS captures mid-flow sentiment (the in-product "Just checking in" intercept) — 91% of responses lack a sentiment label, but the friction it surfaces skews toward confidence and calculation concerns. Callchat captures operational friction mid-interaction. Community surfaces self-service breakdowns. Reddit amplifies pricing outrage. OOP captures billing escalations. No single source gives the full picture.</p>
+</div>
+
+<hr class="divider">
+
+<hr class="divider">
+
+<!-- Top Themes Per Source -->
+<h2>Top Themes by Source</h2>
+<p class="dim">Themes derived from customer friction points — what customers are actually experiencing and complaining about. Ranked by volume within each source.</p>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">PRS <span class="pill pill-blue">2.0M</span> <span class="dim" style="font-size:0.8em">Post-filing</span></div>
+    <div class="card-body">
+      <table><thead><tr><th>Theme</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead><tbody>
+        <tr class="row-danger"><td>Pricing concern</td><td class="r">128,305</td><td class="r">71%</td></tr>
+        <tr class="row-warning"><td>Confusing interface</td><td class="r">19,452</td><td class="r">35%</td></tr>
+        <tr class="row-warning"><td>Aggressive upselling</td><td class="r">3,495</td><td class="r">55%</td></tr>
+        <tr class="row-warning"><td>Pricing transparency issue</td><td class="r">2,721</td><td class="r">76%</td></tr>
+        <tr class="row-danger"><td>Unexpected pricing charge</td><td class="r">2,560</td><td class="r">90%</td></tr>
+        <tr><td>Missing feature</td><td class="r">1,839</td><td class="r">39%</td></tr>
+        <tr><td>Confusing interface design</td><td class="r">1,833</td><td class="r">44%</td></tr>
+        <tr class="row-warning"><td>Excessive upselling</td><td class="r">1,714</td><td class="r">42%</td></tr>
+        <tr class="row-warning"><td>Pricing increase</td><td class="r">1,659</td><td class="r">58%</td></tr>
+      </tbody></table>
+      <p class="dim" style="font-size:0.8em;margin-top:0.5rem">PRS is dominated by pricing and UI — calculation/refund accuracy is <em>not</em> a top theme (only 621 records).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">MPS <span class="pill pill-amber">981K</span> <span class="dim" style="font-size:0.8em">Mid-flow intercept</span></div>
+    <div class="card-body">
+      <table><thead><tr><th>Theme</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead><tbody>
+        <tr class="row-warning"><td>Pricing concern</td><td class="r">44,279</td><td class="r">55%</td></tr>
+        <tr><td>Lack of confidence</td><td class="r">18,307</td><td class="r">21%</td></tr>
+        <tr class="row-danger"><td>Unresolved support issue</td><td class="r">15,536</td><td class="r">91%</td></tr>
+        <tr class="row-danger"><td>Incorrect refund calculation</td><td class="r">13,725</td><td class="r">100%</td></tr>
+        <tr class="row-warning"><td>Confusing interface</td><td class="r">12,662</td><td class="r">27%</td></tr>
+        <tr><td>Time consuming process</td><td class="r">11,154</td><td class="r">20%</td></tr>
+        <tr class="row-danger"><td>Support failed to resolve</td><td class="r">10,040</td><td class="r">100%</td></tr>
+        <tr><td>Software issue</td><td class="r">4,149</td><td class="r">42%</td></tr>
+        <tr class="row-danger"><td>Poor support quality</td><td class="r">3,882</td><td class="r">98%</td></tr>
+      </tbody></table>
+      <p class="dim" style="font-size:0.8em;margin-top:0.5rem">MPS uniquely surfaces <strong>lack of confidence</strong> (18K) and <strong>refund calculation concern</strong> (14K) — themes largely absent from PRS. Users are mid-flow and may not have finished entering data.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Callchat <span class="pill pill-blue">2.8M</span></div>
+    <div class="card-body">
+      <table><thead><tr><th>Theme</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead><tbody>
+        <tr class="row-warning"><td>Call disconnection</td><td class="r">21,682</td><td class="r">25%</td></tr>
+        <tr class="row-danger"><td>Form validation error</td><td class="r">20,648</td><td class="r">76%</td></tr>
+        <tr class="row-warning"><td>UI navigation difficulty</td><td class="r">20,372</td><td class="r">7%</td></tr>
+        <tr class="row-warning"><td>Missing documentation</td><td class="r">16,261</td><td class="r">21%</td></tr>
+        <tr class="row-danger"><td>Screen share connection failure</td><td class="r">16,227</td><td class="r">42%</td></tr>
+        <tr class="row-warning"><td>Navigation difficulty</td><td class="r">14,703</td><td class="r">10%</td></tr>
+        <tr><td>Audio quality issue</td><td class="r">14,090</td><td class="r">19%</td></tr>
+        <tr class="row-warning"><td>Confusing UI navigation</td><td class="r">12,198</td><td class="r">19%</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Community <span class="pill pill-amber">70K</span></div>
+    <div class="card-body">
+      <table><thead><tr><th>Theme</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead><tbody>
+        <tr class="row-danger"><td>Calculation error</td><td class="r">491</td><td class="r">90%</td></tr>
+        <tr class="row-danger"><td>Form validation error</td><td class="r">433</td><td class="r">83%</td></tr>
+        <tr><td>Feature discoverability</td><td class="r">270</td><td class="r">4%</td></tr>
+        <tr><td>Navigation difficulty</td><td class="r">262</td><td class="r">6%</td></tr>
+        <tr class="row-danger"><td>Incorrect tax calculation</td><td class="r">241</td><td class="r">93%</td></tr>
+        <tr class="row-warning"><td>Missing feature</td><td class="r">229</td><td class="r">60%</td></tr>
+        <tr class="row-warning"><td>Feature unavailable</td><td class="r">196</td><td class="r">69%</td></tr>
+        <tr class="row-warning"><td>Missing UI element</td><td class="r">176</td><td class="r">69%</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Reddit <span class="pill pill-rose">49K</span></div>
+    <div class="card-body">
+      <table><thead><tr><th>Theme</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead><tbody>
+        <tr class="row-danger"><td>Pricing concern</td><td class="r">547</td><td class="r">14%</td></tr>
+        <tr class="row-danger"><td>Misleading pricing claims</td><td class="r">264</td><td class="r">68%</td></tr>
+        <tr class="row-danger"><td>Unexpected charges</td><td class="r">221</td><td class="r">60%</td></tr>
+        <tr class="row-danger"><td>Unexpected billing charge</td><td class="r">218</td><td class="r">75%</td></tr>
+        <tr><td>Pricing expectation mismatch</td><td class="r">208</td><td class="r">4%</td></tr>
+        <tr class="row-danger"><td>Pricing barrier</td><td class="r">205</td><td class="r">64%</td></tr>
+        <tr class="row-warning"><td>Pricing perception</td><td class="r">193</td><td class="r">35%</td></tr>
+        <tr class="row-danger"><td>Excessive pricing</td><td class="r">174</td><td class="r">80%</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">OOP — Out of Product <span class="pill pill-rose">2.3K</span></div>
+    <div class="card-body">
+      <table><thead><tr><th>Theme</th><th class="r">Count</th><th class="r">% High Sev.</th></tr></thead><tbody>
+        <tr class="row-warning"><td>Refund denial</td><td class="r">44</td><td class="r">55%</td></tr>
+        <tr class="row-danger"><td>Inadequate support response</td><td class="r">41</td><td class="r">73%</td></tr>
+        <tr class="row-danger"><td>Unresponsive support</td><td class="r">25</td><td class="r">92%</td></tr>
+        <tr class="row-warning"><td>Calculation error</td><td class="r">21</td><td class="r">38%</td></tr>
+        <tr class="row-warning"><td>Refund request denied</td><td class="r">19</td><td class="r">53%</td></tr>
+        <tr><td>Account access failure</td><td class="r">15</td><td class="r">33%</td></tr>
+        <tr><td>Refund delivery failure</td><td class="r">15</td><td class="r">20%</td></tr>
+        <tr class="row-danger"><td>Unexpected billing charge</td><td class="r">14</td><td class="r">79%</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Convergence -->
+<h2>Where Sources Converge: Shared Themes</h2>
+<p class="dim">Despite each source having a different character, several themes emerge independently across multiple channels — these represent the highest-confidence signals.</p>
+
+<table>
+  <thead><tr><th>Theme</th><th>Callchat</th><th>PRS</th><th>MPS</th><th>Community</th><th>Reddit</th><th>OOP</th><th>Convergence</th></tr></thead>
+  <tbody>
+    <tr class="row-danger"><td>Pricing / Value</td><td>—</td><td>#1 (128K)</td><td>#1 (44K)</td><td>—</td><td>5.9%</td><td>~3%</td><td>PRS + MPS + Reddit + OOP</td></tr>
+    <tr class="row-danger"><td>Incorrect Tax Calculation</td><td>form val. error</td><td>rare (621)</td><td>#4 (14K)</td><td>calc error #1</td><td>—</td><td>—</td><td>Callchat + MPS + Community</td></tr>
+    <tr class="row-warning"><td>Navigation / UI Confusion</td><td>UI nav #1</td><td>#2 (19K)</td><td>#5 (13K)</td><td>nav difficulty</td><td>—</td><td>—</td><td>Callchat + PRS + MPS + Community</td></tr>
+    <tr class="row-warning"><td>Lack of Confidence</td><td>—</td><td>—</td><td>#2 (18K)</td><td>—</td><td>—</td><td>—</td><td>MPS only (mid-flow signal)</td></tr>
+    <tr class="row-danger"><td>Support Resolution Failure</td><td>—</td><td>—</td><td>#3 (16K)</td><td>—</td><td>—</td><td>—</td><td>MPS only</td></tr>
+    <tr class="row-danger"><td>Refund Issues</td><td>resolve refund</td><td>—</td><td>—</td><td>missing refund</td><td>refund delay</td><td>obtain refund</td><td>Callchat + Community + Reddit + OOP</td></tr>
+    <tr class="row-warning"><td>Account Access</td><td>acct access 66% neg</td><td>—</td><td>—</td><td>—</td><td>—</td><td>acct access 97% neg</td><td>Callchat + OOP</td></tr>
+  </tbody>
+</table>
+
+<div class="grid-3">
+  <div class="callout callout-danger">
+    <div class="callout-title">Pricing: PRS + MPS + Reddit + OOP</div>
+    <p>Pricing surfaces independently in PRS (#1 at 128K, 71% high severity), MPS (#1 at 44K, 55% high severity), Reddit (top 8 of 12 friction types are pricing-related), and OOP (refund demands for overcharges). PRS and MPS both flag pricing, but PRS is 2.5x the rate — post-filing users are more vocal about price than mid-flow users.</p>
+  </div>
+  <div class="callout callout-danger">
+    <div class="callout-title">Calculation Errors: MPS + Callchat + Community (not PRS)</div>
+    <p>Tax calculation accuracy is the #4 theme in MPS (14K, 100% high severity) but is <strong>nearly absent from PRS</strong> (only 621 records). It also surfaces in callchat (form validation errors, 76% high severity) and community (#1 friction type, 90% high severity). The key insight: refund calculation concern is a <em>mid-flow</em> signal (MPS) — users worry their refund looks wrong while still preparing, not after filing.</p>
+  </div>
+  <div class="callout callout-warning">
+    <div class="callout-title">MPS-Only Signals: Confidence + Support Failures</div>
+    <p>"Lack of confidence" (18K) and "unresolved support issue" (16K) appear exclusively in MPS. These are mid-flow signals from users who chose "Not So Good" or "Don't Ask" when the product checked in. They don't surface in PRS (post-filing) because customers who lacked confidence mid-flow either resolved the issue or abandoned before getting a PRS survey.</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Deep-Dive: Pricing -->
+<h2>Deep-Dive: What's Behind the Pricing Signal?</h2>
+<p class="dim">Pricing is the #1 friction across PRS, Reddit, and OOP. But is it "too expensive" or "surprised by the price"? Grouping the friction sub-types into three categories reveals the answer.</p>
+
+<div class="grid-3">
+  <div class="kpi"><div class="lbl">"Too Expensive" (Value)</div><div class="val val-rose">~131K</div></div>
+  <div class="kpi"><div class="lbl">"Surprise" (Transparency)</div><div class="val val-amber">~8K</div></div>
+  <div class="kpi"><div class="lbl">"Stop Upselling Me"</div><div class="val val-accent">~8K</div></div>
+</div>
+
+<h3>Category Breakdown (PRS)</h3>
+<div class="grid-3">
+  <div>
+    <p style="font-weight:600;margin-bottom:0.5rem;color:var(--rose)">"Too Expensive" — 131K+ friction points</p>
+    <table><thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High</th></tr></thead><tbody>
+      <tr class="row-danger"><td>pricing concern</td><td class="r">128,267</td><td class="r">70%</td></tr>
+      <tr class="row-danger"><td>pricing too high</td><td class="r">662</td><td class="r">93%</td></tr>
+      <tr class="row-danger"><td>excessive pricing/fees</td><td class="r">519</td><td class="r">91%</td></tr>
+      <tr class="row-danger"><td>pricing barrier</td><td class="r">609</td><td class="r">86%</td></tr>
+      <tr class="row-warning"><td>pricing increase</td><td class="r">1,422</td><td class="r">56%</td></tr>
+    </tbody></table>
+  </div>
+  <div>
+    <p style="font-weight:600;margin-bottom:0.5rem;color:var(--amber)">"Surprise / Transparency" — ~8K friction points</p>
+    <table><thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High</th></tr></thead><tbody>
+      <tr class="row-danger"><td>unexpected pricing charge</td><td class="r">2,559</td><td class="r">86%</td></tr>
+      <tr class="row-warning"><td>pricing transparency issue</td><td class="r">2,720</td><td class="r">75%</td></tr>
+      <tr class="row-danger"><td>pricing discrepancy</td><td class="r">964</td><td class="r">85%</td></tr>
+      <tr class="row-danger"><td>misleading pricing</td><td class="r">767</td><td class="r">94%</td></tr>
+      <tr class="row-danger"><td>hidden fees / pricing transparency</td><td class="r">910</td><td class="r">90%</td></tr>
+      <tr class="row-danger"><td>deceptive pricing model</td><td class="r">444</td><td class="r">83%</td></tr>
+      <tr class="row-danger"><td>unclear pricing disclosure</td><td class="r">422</td><td class="r">86%</td></tr>
+    </tbody></table>
+  </div>
+  <div>
+    <p style="font-weight:600;margin-bottom:0.5rem;color:var(--accent)">"Upselling Fatigue" — ~8K friction points</p>
+    <table><thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High</th></tr></thead><tbody>
+      <tr class="row-warning"><td>aggressive upselling</td><td class="r">3,488</td><td class="r">55%</td></tr>
+      <tr class="row-warning"><td>excessive upselling</td><td class="r">1,713</td><td class="r">43%</td></tr>
+      <tr class="row-warning"><td>aggressive upselling tactics</td><td class="r">905</td><td class="r">67%</td></tr>
+      <tr><td>excessive upgrade prompts</td><td class="r">655</td><td class="r">27%</td></tr>
+      <tr><td>excessive upsell prompts</td><td class="r">907</td><td class="r">33%</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="callout callout-danger">
+  <div class="callout-title">The answer: it's overwhelmingly "too expensive," not "surprised by the price"</div>
+  <p>~131K friction points (89%) are pure value perception — customers know what they're paying and think it's too much. Only ~8K (5%) cite transparency issues (hidden fees, unexpected charges, misleading pricing). Another ~8K (5%) complain about upselling fatigue. This suggests transparency improvements have landed — the "free to paid" surprise is now a small minority of the signal. The dominant complaint is sticker shock on a price they saw clearly.</p>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">Go deeper: 6-Year PRS Pricing Trend (TY20–TY25)</div>
+  <p>How did we get here? A keyword-matched analysis of raw PRS verbatims going back to TY20 shows "too expensive" complaints more than doubled in rate over 6 years, while transparency friction improved post-TY20 before rebounding in TY25. TY25 is the first year all three categories are simultaneously at 6-year highs. <a href="prs_pricing_6yr_trend.html" style="font-weight:600">View the full trend report &rarr;</a></p>
+</div>
+
+<h3>Reddit Confirms: Transparency Is Still a Factor — But Smaller</h3>
+<table>
+  <thead><tr><th>Reddit Pricing Sub-Type</th><th class="r">Count</th><th class="r">% High Sev.</th><th>Category</th></tr></thead>
+  <tbody>
+    <tr class="row-danger"><td>pricing concern</td><td class="r">547</td><td class="r">14%</td><td>Value</td></tr>
+    <tr class="row-danger"><td>misleading pricing claims</td><td class="r">264</td><td class="r">68%</td><td>Transparency</td></tr>
+    <tr class="row-danger"><td>unexpected charges</td><td class="r">221</td><td class="r">60%</td><td>Transparency</td></tr>
+    <tr class="row-danger"><td>unexpected billing charge</td><td class="r">218</td><td class="r">75%</td><td>Transparency</td></tr>
+    <tr><td>pricing expectation mismatch</td><td class="r">208</td><td class="r">4%</td><td>Transparency</td></tr>
+    <tr class="row-danger"><td>pricing barrier</td><td class="r">205</td><td class="r">64%</td><td>Value</td></tr>
+    <tr class="row-danger"><td>excessive pricing</td><td class="r">174</td><td class="r">80%</td><td>Value</td></tr>
+    <tr class="row-warning"><td>pricing increase</td><td class="r">105</td><td class="r">59%</td><td>Value</td></tr>
+    <tr class="row-danger"><td>misleading pricing</td><td class="r">92</td><td class="r">85%</td><td>Transparency</td></tr>
+    <tr class="row-danger"><td>misleading pricing model</td><td class="r">91</td><td class="r">80%</td><td>Transparency</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-warning">
+  <div class="callout-title">Reddit tells a slightly different story</div>
+  <p>On Reddit, transparency friction is proportionally larger (~40% of pricing sub-types vs 5% in PRS) because Reddit is where "bait-and-switch" accusations get amplified publicly. But even there, pure value complaints ("pricing concern", "pricing barrier", "excessive pricing") outnumber transparency complaints. The "free to paid" narrative still gets traction on Reddit, but it's not the majority of the pricing signal.</p>
+</div>
+
+<h3>What Customers Are Actually Saying</h3>
+<p class="dim">Direct customer verbatims from PRS survey responses (unedited).</p>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"Too Expensive" <span class="pill pill-rose">PRS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"Used to be cheaper to file, but now the LOWEST fees are almost $200, too expensive to file alone."</div>
+      <div class="verbatim">"ITS TOO EXPENSIVE WHEN IM DOING ALL THE WORK."</div>
+      <div class="verbatim">"i will be filing elsewhere next year, it is way too expensive, and a 40$ fee to take the payment out of the return is outrageous. i just found out that H and R block is cheaper than you guys. ill be filing with them this year."</div>
+      <div class="verbatim">"Too expensive for a simple tax return!!!"</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"Surprised by Price" <span class="pill pill-amber">PRS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"it is not free anymore. i tried so many times. im disappointed that i had to pay for such a simple form to be sent. i clicked on free about 5-6 different times. bull crap"</div>
+      <div class="verbatim">"Too many surprise and hidden fees."</div>
+      <div class="verbatim">"I'm a loyal TurboTax customer but this will be my last year filing with turbo tax due to hidden fees and price"</div>
+      <div class="verbatim">"charged me for the turbo tax assistant when I never used it and I declined upon it asking me to use. I paid it anyways because there was no option to remove it."</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"Stop Upselling Me" <span class="pill pill-blue">PRS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"There are too many upsell pop-ups during the process - No means no"</div>
+      <div class="verbatim">"Stop trying to upsell people with unnecessary upgrades to your platform. Offer it once and then let it go."</div>
+      <div class="verbatim">"TOO MUCH UPSELLING AND MISDIRECTION TO CREATE UNINTENDED UPGRADES."</div>
+      <div class="verbatim">"Constant upselling, and 2025 Premier is a lot more difficult to use this year. After many, many years, were done."</div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:1.5rem">Verbatim Summaries (LLM-generated)</h3>
+<p class="dim">These are LLM-generated summaries from structured_extracts, not direct customer quotes.</p>
+<div class="grid-3">
+  <div class="card collapsed">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"Too Expensive" — Summaries <span class="pill pill-rose">PRS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"TurboTax fees perceived as too high, impacting customer's willingness to recommend the product."</div>
+      <div class="verbatim">"Price increases occur year-over-year, making TurboTax progressively less attractive as a tax preparation option due to escalating costs."</div>
+      <div class="verbatim">"Annual price increases perceived as unfair pricing practice. Customer characterizes pricing model as 'a scam,' indicating loss of trust in pricing transparency and value proposition."</div>
+    </div>
+  </div>
+  <div class="card collapsed">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"Surprised by Price" — Summaries <span class="pill pill-amber">PRS + Reddit</span></div>
+    <div class="card-body">
+      <div class="verbatim">"Hidden fees appear at the end of tax preparation process without upfront disclosure. Customer discovered unexpected charges only after completing their return." — PRS</div>
+      <div class="verbatim">"Customer charged $140 for filing despite TurboTax marketing the product as free. Customer completed filing in under 10 minutes." — Reddit</div>
+    </div>
+  </div>
+  <div class="card collapsed">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"Stop Upselling Me" — Summaries <span class="pill pill-blue">PRS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"Aggressive upsell prompts appear on nearly every page during tax form completion, forcing customer to repeatedly decline add-on offers."</div>
+      <div class="verbatim">"Excessive upselling during tax preparation process overshadows core help and support. Customer reports spending more time dealing with upsell attempts than receiving actual tax assistance."</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Deep-Dive: Calculation Errors -->
+<h2>Deep-Dive: Calculation Errors Across Sources</h2>
+<p class="dim">Tax calculation accuracy is the only friction theme that surfaces as high-severity across three independent channels. This section breaks down the volume, sub-types, and verbatims from each source.</p>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="lbl">Callchat</div><div class="val val-rose">34,310</div></div>
+  <div class="kpi"><div class="lbl">MPS (mid-flow)</div><div class="val val-rose">34,737</div></div>
+  <div class="kpi"><div class="lbl">PRS (post-filing)</div><div class="val val-amber">5,554</div></div>
+  <div class="kpi"><div class="lbl">Community</div><div class="val val-amber">1,844</div></div>
+</div>
+
+<h3>Volume by Sub-Type</h3>
+<div class="grid-2" style="margin-bottom:1rem">
+  <div>
+    <p style="font-weight:600;margin-bottom:0.5rem">Callchat (34,310)</p>
+    <table><thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High</th></tr></thead><tbody>
+      <tr class="row-danger"><td>form validation error</td><td class="r">19,773</td><td class="r">76%</td></tr>
+      <tr class="row-danger"><td>incorrect tax calculation</td><td class="r">5,879</td><td class="r">84%</td></tr>
+      <tr class="row-warning"><td>calculation discrepancy</td><td class="r">3,748</td><td class="r">68%</td></tr>
+      <tr class="row-warning"><td>calculation error</td><td class="r">3,055</td><td class="r">77%</td></tr>
+      <tr class="row-warning"><td>tax calculation error</td><td class="r">1,855</td><td class="r">73%</td></tr>
+    </tbody></table>
+  </div>
+  <div>
+    <p style="font-weight:600;margin-bottom:0.5rem">MPS — Mid-Flow Intercept (34,737)</p>
+    <p class="dim" style="font-size:0.8em;margin-bottom:0.5rem">Users still preparing — may not have finished entering data</p>
+    <table><thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High</th></tr></thead><tbody>
+      <tr class="row-danger"><td>incorrect refund calculation</td><td class="r">13,725</td><td class="r">100%</td></tr>
+      <tr class="row-danger"><td>refund calculation concern</td><td class="r">3,055</td><td class="r">81%</td></tr>
+      <tr class="row-danger"><td>incorrect support answer</td><td class="r">1,964</td><td class="r">100%</td></tr>
+      <tr class="row-danger"><td>refund accuracy concern</td><td class="r">1,097</td><td class="r">93%</td></tr>
+      <tr class="row-danger"><td>incorrect tax calculation</td><td class="r">1,041</td><td class="r">100%</td></tr>
+      <tr class="row-danger"><td>incorrect support guidance</td><td class="r">903</td><td class="r">98%</td></tr>
+      <tr class="row-danger"><td>incorrect refund amount</td><td class="r">858</td><td class="r">100%</td></tr>
+    </tbody></table>
+  </div>
+</div>
+<div class="grid-2">
+  <div>
+    <p style="font-weight:600;margin-bottom:0.5rem">PRS — Post-Filing (5,554)</p>
+    <p class="dim" style="font-size:0.8em;margin-bottom:0.5rem">Completers reflecting on their experience</p>
+    <table><thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High</th></tr></thead><tbody>
+      <tr class="row-danger"><td>incorrect tax calculation</td><td class="r">537</td><td class="r">99%</td></tr>
+      <tr class="row-danger"><td>tax calculation error</td><td class="r">353</td><td class="r">96%</td></tr>
+      <tr class="row-danger"><td>calculation error</td><td class="r">258</td><td class="r">93%</td></tr>
+      <tr class="row-warning"><td>lack of calc. transparency</td><td class="r">104</td><td class="r">43%</td></tr>
+      <tr class="row-danger"><td>incorrect expert guidance</td><td class="r">75</td><td class="r">92%</td></tr>
+      <tr class="row-danger"><td>refund calc. discrepancy</td><td class="r">66</td><td class="r">98%</td></tr>
+      <tr class="row-danger"><td>incorrect calculation</td><td class="r">66</td><td class="r">97%</td></tr>
+    </tbody></table>
+  </div>
+  <div>
+    <p style="font-weight:600;margin-bottom:0.5rem">Community (1,844)</p>
+    <table><thead><tr><th>Sub-Type</th><th class="r">Count</th><th class="r">% High</th></tr></thead><tbody>
+      <tr class="row-danger"><td>calculation error</td><td class="r">491</td><td class="r">90%</td></tr>
+      <tr class="row-danger"><td>form validation error</td><td class="r">433</td><td class="r">83%</td></tr>
+      <tr class="row-danger"><td>incorrect tax calc.</td><td class="r">241</td><td class="r">93%</td></tr>
+      <tr class="row-warning"><td>tax calculation error</td><td class="r">166</td><td class="r">81%</td></tr>
+      <tr class="row-warning"><td>calculation discrepancy</td><td class="r">145</td><td class="r">71%</td></tr>
+      <tr class="row-danger"><td>incorrect deduction calc.</td><td class="r">93</td><td class="r">97%</td></tr>
+      <tr class="row-danger"><td>deduction calc. error</td><td class="r">92</td><td class="r">92%</td></tr>
+      <tr class="row-danger"><td>missing deduction calc.</td><td class="r">64</td><td class="r">97%</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="callout callout-danger">
+  <div class="callout-title">Calculation Friction Across 4 Sources — MPS Dominates</div>
+  <p>Callchat and MPS contribute nearly equal volume (~34K each) but from different angles. Callchat is dominated by form validation errors that <em>block</em> filing. MPS captures mid-flow users who worry their refund looks wrong — but haven't finished entering data yet. PRS (5.5K) confirms that some calculation concern persists post-filing, though at 6x lower volume. Community is smallest (1.8K) but most actionable: specific, reproducible bugs (standard deduction, SSA, inherited IRA).</p>
+</div>
+
+<h3>What Customers Are Actually Saying</h3>
+<p class="dim">Direct customer verbatims from survey responses and community posts (unedited).</p>
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">MPS — Mid-Flow Concerns <span class="pill pill-amber">MPS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"My refund looks a lot lower then past years. Did I do something wrong?"</div>
+      <div class="verbatim">"first year filing seperate and my refund just seems too high"</div>
+      <div class="verbatim">"I dont see my refund yet like i used to while im doing it."</div>
+      <div class="verbatim">"i know that there were some tax changes to overtime work, we have been told by my husbands co workers that they have received more refund this year because of that, i am unsure that turbo tax will account for these changes"</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">PRS — Post-Filing Complaints <span class="pill pill-blue">PRS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"It duplicated everyone of my 1099-R entries, which after deleted the bogus duplicates I went from owing 177.00 to getting a refund of 342.00. I wonder what other parts of Turbotax are also wrong!"</div>
+      <div class="verbatim">"Entries are randomly placing in wrong box on IRS form. Some of the verification messages do not make sense. Final numbers changed after verification found no error."</div>
+      <div class="verbatim">"Numbers change every time there is a software update. I lack confidence in the accuracy of the software."</div>
+      <div class="verbatim">"The state return numbers were wrongly calculated and could not be adjusted to reflect accurate filing."</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">Community — Forum Bug Reports <span class="pill pill-rose">community</span></div>
+    <div class="card-body">
+      <div class="verbatim">"Standard deduction shows $34,700 for MFJ with both spouses over 65, but should be $46,700 after applying $6,000 senior bonus deduction per person."</div>
+      <div class="verbatim">"Social Security taxable amount on Form 1040 line 6B calculates to $0 despite meeting criteria for 85% taxation (under 65 with income exceeding minimum threshold)."</div>
+      <div class="verbatim">"Line 29 on IT-201 incorrectly calculated for inherited IRA distributions across three tax years (2023-2025). Excluded amount is either missing or partially included."</div>
+      <div class="verbatim">"Miscellaneous Income entries are doubling in the tax return summary despite deleting and re-entering. The doubled amount persists after multiple correction attempts."</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">Callchat — Support Interactions <span class="pill pill-rose">callchat</span></div>
+    <div class="card-body">
+      <p class="dim" style="font-size:0.8em;margin-bottom:0.5rem">LLM summaries — raw callchat transcripts are not available in structured_extracts.</p>
+      <div class="verbatim">"Tax calculation engine produced incorrect result showing $20,000 owed when customer's annual income is $60,000. Customer discovered online reports of bugs in TurboTax Desktop 2024, losing confidence in software accuracy."</div>
+      <div class="verbatim">"QBI screen displaying wages at double the correct amount. Customer unable to locate where the duplicate entry was made."</div>
+      <div class="verbatim">"State tax filing calculated $789 owed to South Carolina despite customer being retired military with pension income that should be exempt under SC law."</div>
+    </div>
+  </div>
+</div>
+
+<div class="callout callout-warning">
+  <div class="callout-title">Four Distinct Failure Modes</div>
+  <p>Each source reveals a different facet of the same problem. <strong>Callchat</strong> shows form validation blocking users from filing (W2 box 15, state forms, spouse data). <strong>MPS</strong> captures mid-flow users who worry their refund looks wrong before they've finished entering data — a confidence signal, not necessarily a bug. <strong>PRS</strong> confirms that some calculation concern persists post-filing (5.5K), though at much lower volume. <strong>Community</strong> surfaces specific, reproducible calculation bugs (senior deduction, SSA, inherited IRA, doubling entries). Together they paint a picture ranging from blocking errors to confidence gaps to silent inaccuracies.</p>
+</div>
+
+<hr class="divider">
+
+<!-- Deep-Dive: Lack of Confidence -->
+<h2>Deep-Dive: Lack of Confidence (MPS)</h2>
+<p class="dim">"Lack of confidence" is the #2 MPS friction theme (18K in the Convergence table) and appears <strong>exclusively</strong> in MPS — it does not surface in PRS, callchat, community, Reddit, or OOP. This section breaks down the specific confidence friction sub-types.</p>
+
+<div class="grid-3">
+  <div class="kpi"><div class="lbl">General Uncertainty</div><div class="val val-amber">~53K</div></div>
+  <div class="kpi"><div class="lbl">Answer Accuracy</div><div class="val val-rose">~7K</div></div>
+  <div class="kpi"><div class="lbl">Trust Concern</div><div class="val val-rose">~3K</div></div>
+</div>
+
+<h3>Confidence Friction by Category</h3>
+<table>
+  <thead><tr><th>Category</th><th class="r">Count</th><th class="r">% High Sev.</th><th>What It Means</th></tr></thead>
+  <tbody>
+    <tr><td>General Confidence / Uncertainty</td><td class="r">52,682</td><td class="r">17%</td><td>Broad "not sure I'm doing this right" signal</td></tr>
+    <tr class="row-warning"><td>Resolution Uncertainty</td><td class="r">12,927</td><td class="r">10%</td><td>Unsure if issue was actually resolved</td></tr>
+    <tr class="row-danger"><td>Confidence in Answer Accuracy</td><td class="r">6,835</td><td class="r">38%</td><td>Don't trust the answer they got</td></tr>
+    <tr class="row-warning"><td>Confidence in Support</td><td class="r">3,583</td><td class="r">27%</td><td>Doubt the support agent's competence</td></tr>
+    <tr class="row-danger"><td>Trust Concern</td><td class="r">3,053</td><td class="r">42%</td><td>Eroding trust in the product / brand</td></tr>
+    <tr class="row-warning"><td>Confidence in Process</td><td class="r">1,110</td><td class="r">32%</td><td>Unsure the filing process will work</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-warning">
+  <div class="callout-title">The dominant signal is "Am I doing this right?" — not "Is TurboTax broken?"</div>
+  <p>The largest bucket (53K, 55%) is general uncertainty — users mid-flow who aren't sure they've entered things correctly. Only 17% of these are high severity. But when confidence shifts to <em>accuracy of answers</em> (7K) or <em>trust in the product</em> (3K), severity jumps to 38–42%. These are the friction points most likely to drive abandonment or defection. The "general uncertainty" is addressable with better in-flow reassurance; the "trust" and "accuracy" concerns require demonstrating correctness.</p>
+</div>
+
+<h3>What Customers Are Actually Saying</h3>
+<p class="dim">Direct customer verbatims from MPS survey responses (unedited).</p>
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"Not Sure I'm Doing This Right" <span class="pill pill-amber">MPS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"Not sure. Its my first time filing on my own"</div>
+      <div class="verbatim">"Not sure if im considered a dependent. I payed at least $500 a month for rent for living at home with my parents."</div>
+      <div class="verbatim">"Not sure I answered some of the questions correctly."</div>
+      <div class="verbatim">"im not sure if im doing this right"</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"I Don't Trust the Result" <span class="pill pill-rose">MPS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"I have a 1099-R from a withdrawal because I didnt deposit it into an IRA in time. It says not taxable. I feel like that is wrong."</div>
+      <div class="verbatim">"To be honest I am still not sure if I can trust the answer i got."</div>
+      <div class="verbatim">"not sure what component is making my taxes so high."</div>
+      <div class="verbatim">"this looks different than the previous years and last year on initial, it didnt ask for any of the standard deductions. Not sure if this is the same issue had last year."</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Deep-Dive: Support Resolution Failure -->
+<h2>Deep-Dive: Support Resolution Failure (MPS)</h2>
+<p class="dim">"Unresolved support issue" is the #3 MPS friction theme (16K in the Convergence table) and, like confidence, appears <strong>exclusively in MPS</strong>. Users who trigger support mid-flow and don't get resolution report it here — by the time PRS is sent, they've either resolved the issue or abandoned entirely.</p>
+
+<div class="grid-3">
+  <div class="kpi"><div class="lbl">Unresolved Issues</div><div class="val val-rose">~54K</div></div>
+  <div class="kpi"><div class="lbl">Poor Quality</div><div class="val val-rose">~51K</div></div>
+  <div class="kpi"><div class="lbl">Failed to Resolve</div><div class="val val-amber">~33K</div></div>
+</div>
+
+<h3>Support Friction by Category</h3>
+<table>
+  <thead><tr><th>Category</th><th class="r">Count</th><th class="r">% High Sev.</th><th>What It Means</th></tr></thead>
+  <tbody>
+    <tr class="row-danger"><td>Unresolved Issue</td><td class="r">54,220</td><td class="r">57%</td><td>Customer left without a resolution</td></tr>
+    <tr class="row-danger"><td>Poor Support Quality</td><td class="r">50,577</td><td class="r">76%</td><td>Agent quality rated poorly</td></tr>
+    <tr class="row-danger"><td>Support Failed to Resolve</td><td class="r">33,242</td><td class="r">59%</td><td>Support tried but couldn't fix it</td></tr>
+    <tr class="row-danger"><td>Difficult Resolution Process</td><td class="r">15,250</td><td class="r">61%</td><td>Too hard to get through the process</td></tr>
+    <tr class="row-danger"><td>Support Access / Disconnection</td><td class="r">10,343</td><td class="r">53%</td><td>Calls dropped, couldn't reach support</td></tr>
+    <tr class="row-danger"><td>Incorrect Support Answer</td><td class="r">6,002</td><td class="r">84%</td><td>Agent gave wrong information</td></tr>
+    <tr class="row-danger"><td>Communication Failure</td><td class="r">4,585</td><td class="r">61%</td><td>Miscommunication or unclear guidance</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-danger">
+  <div class="callout-title">Three failure modes — and the scariest one is "wrong answers" at 84% high severity</div>
+  <p>The volume leader is <strong>unresolved issues</strong> (54K) — customers who simply didn't get their problem fixed. But the highest-severity category is <strong>incorrect support answers</strong> (6K, 84% high severity) — agents providing wrong information that could lead to filing errors. <strong>Poor support quality</strong> (51K, 76% high severity) and <strong>support access / disconnection</strong> (10K) round out a picture of a support experience that's failing on quality, accuracy, and reliability. Disconnections alone account for 10K friction points — customers who got cut off and never reconnected.</p>
+</div>
+
+<h3>What Customers Are Actually Saying</h3>
+<p class="dim">Direct customer verbatims from MPS survey responses (unedited).</p>
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"They Couldn't Help Me" <span class="pill pill-rose">MPS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"The agent tried to help and guided me to best of her knowledge but couldnt help me resolve the system issue"</div>
+      <div class="verbatim">"I needed to get to the page to fix something. It won't take me there. No amount of searching is helping. The chat person was no help."</div>
+      <div class="verbatim">"Gabriella D my chat support agent just repeated what AI told me and she was unhelpful"</div>
+      <div class="verbatim">"If that is an indication of the knowledge level for your support agents, it is a waste of time calling in the future."</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('collapsed')">"We Got Disconnected" <span class="pill pill-amber">MPS</span></div>
+    <div class="card-body">
+      <div class="verbatim">"We got disconnected and she never called me back as she said she would"</div>
+      <div class="verbatim">"Pleasant person. Sounds like she could have fixed the problem. We were disconnected and nobody got back in touch. Then I get this email saying case closed. Problems still unresolved."</div>
+      <div class="verbatim">"My issue was not resolved after 15 minutes on the phone mostly on hold. Then the person hung up and didn't call back."</div>
+      <div class="verbatim">"Ive tried calling customer support 3 separate times and the one time I got through to an operator they hung up on me"</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<p class="footer">
+  Data source: voc_7216_dwh.structured_extracts | Callchat & survey: tax_year = 2025 |
+  Community, Reddit, oop: event_date &ge; 2025-11-01 (tax_year NULL) |
+  Within-source percentages used to prevent volume-weighted distortion |
+  Generated April 29, 2026.
+</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TY25 vs TY23 Recent Unit Performance</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1419;
+            color: #e7e9ea;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        .subtitle {
+            color: #71767b;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+        .section {
+            background: #16202a;
+            border: 1px solid #2f3336;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .section h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+        .section h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            color: #8899a6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        th {
+            text-align: left;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 2px solid #2f3336;
+            color: #8899a6;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #2f3336;
+            white-space: nowrap;
+        }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .positive { color: #00ba7c; }
+        .negative { color: #f4212e; }
+        .neutral { color: #8899a6; }
+        .bold { font-weight: 600; }
+        .total-row { background: #1c2b3a; font-weight: 600; }
+        .insight-box {
+            background: #1c2b3a;
+            border-left: 3px solid #1d9bf0;
+            padding: 1rem 1.2rem;
+            margin-top: 1rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+        }
+        .insight-box ul { padding-left: 1.2rem; margin-top: 0.5rem; }
+        .insight-box li { margin-bottom: 0.4rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .chart-container { height: 400px; }
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .kpi-card {
+            background: #16202a;
+            border: 1px solid #2f3336;
+            border-radius: 10px;
+            padding: 1.2rem;
+            text-align: center;
+        }
+        .kpi-card .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin: 0.3rem 0;
+        }
+        .kpi-card .label {
+            font-size: 0.8rem;
+            color: #71767b;
+        }
+        .kpi-card .delta {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .tab-btn {
+            background: transparent;
+            border: 1px solid #2f3336;
+            color: #8899a6;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .tab-btn.active, .tab-btn:hover {
+            background: #1d9bf0;
+            color: #fff;
+            border-color: #1d9bf0;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @media (max-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>TY25 vs TY23 Recent Unit Performance</h1>
+    <p class="subtitle">
+        Date window: TY25 = Jun 28 – Jul 13, 2026 &nbsp;|&nbsp; TY23 = Jun 30 – Jul 15, 2024 (16-day aligned)
+        &nbsp;|&nbsp; Generated: Jul 14, 2026
+    </p>
+
+    <!-- KPI Cards -->
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="label">Completes Index</div>
+            <div class="value negative">88</div>
+            <div class="delta negative">47,052 vs 53,479</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Starts Index</div>
+            <div class="value negative">95</div>
+            <div class="delta negative">66,819 vs 70,538</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Starts excl. CK</div>
+            <div class="value negative">85</div>
+            <div class="delta negative">55,264 vs 65,316</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">CK Starts Growth</div>
+            <div class="value positive">311</div>
+            <div class="delta positive">9,218 vs 2,969</div>
+        </div>
+    </div>
+
+    <!-- Executive Summary -->
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p style="font-size:0.95rem; line-height:1.7;">
+            We are seeing some unit growth in the last 16 days for Prospects (index 108) and Winbacks (index 104), but all other segments are down. Starts are down overall (index 95), driven by Returning (index 81) and New Account (index 89) declines, though Prospect and Winback starts grew. S2C is down across all segments and SKUs.
+        </p>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="section" style="border-left: 3px solid #1d9bf0;">
+        <h2>Key Takeaways</h2>
+        <div style="font-size:0.9rem;">
+            <ol style="padding-left:1.2rem;">
+                <li style="margin-bottom:0.6rem;"><strong>Completes index at 88</strong> — down 6,427 units in the prior 16-day window. Veteran Returning accounts for 62% of the total gap.</li>
+                <li style="margin-bottom:0.6rem;"><strong>Credit Karma is offsetting underlying softness:</strong> total starts index is 95 with CK, but only 85 excluding it. CK grew from 2,969 to 9,218 starts (index 311).</li>
+                <li style="margin-bottom:0.6rem;"><strong>Post-income funnel is the primary pressure point in the prior 16-day window:</strong> I2C declined meaningfully (Veteran Returning index 57, First Year Returning index 64). Full-season YTD I2C is much healthier (Veteran Returning index 90, First Year Returning index 88) — the steep decline is concentrated in the late-season cohort.</li>
+                <li style="margin-bottom:0.6rem;"><strong>Paid Search declined significantly:</strong> Generic index 32, Brand index 65. This is the largest source of start decline outside of Non-Campaign (index 74).</li>
+                <li style="margin-bottom:0.6rem;"><strong>Clear SKU migration:</strong> standalone Deluxe (index 49) and Premium (index 44) declined in Returning; TTL Deluxe (index 182), TTL Premium (index 144), and Solopreneur (index 652) absorbed the volume.</li>
+                <li style="margin-bottom:0.6rem;"><strong>Prior 16-day window S2C is softer than full-season:</strong> window cohort total S2C index 68, but full-season YTD S2C index 96. Late-season starters convert at structurally lower rates, and TY25 is below TY23 at every segment.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- COMPLETES -->
+    <div class="section">
+        <h2>Completes</h2>
+        <table>
+            <thead>
+                <tr><th>Rollup</th><th>Customer Type</th><th class="num">TY25</th><th class="num">TY23</th><th class="num">Delta</th><th class="num">Index</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="bold">New</td><td>New account</td><td class="num">4,956</td><td class="num">5,984</td><td class="num negative">-1,028</td><td class="num negative bold">83</td></tr>
+                <tr><td class="bold">New</td><td>Prospect</td><td class="num">3,390</td><td class="num">3,143</td><td class="num positive">+247</td><td class="num positive">108</td></tr>
+                <tr><td class="bold">New</td><td>Skip year</td><td class="num">4,793</td><td class="num">5,814</td><td class="num negative">-1,021</td><td class="num negative bold">82</td></tr>
+                <tr><td class="bold">New</td><td>Winback</td><td class="num">5,690</td><td class="num">5,454</td><td class="num positive">+236</td><td class="num positive">104</td></tr>
+                <tr><td class="bold">Returning</td><td>First Year Returning</td><td class="num">6,423</td><td class="num">7,277</td><td class="num negative">-854</td><td class="num negative">88</td></tr>
+                <tr><td class="bold">Returning</td><td>Veteran Returning</td><td class="num">21,800</td><td class="num">25,807</td><td class="num negative">-4,007</td><td class="num negative bold">84</td></tr>
+                <tr class="total-row"><td></td><td class="bold">Total</td><td class="num">47,052</td><td class="num">53,479</td><td class="num negative">-6,427</td><td class="num negative bold">88</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 1. STARTS -->
+    <div class="section">
+        <h2>Starts</h2>
+        <p style="color:#71767b; font-size:0.85rem; margin-bottom:1rem;">Starters entering the funnel (tto_start_flag=1, excl. FFA). Filtered on first_start_date (PT).</p>
+        <table>
+            <thead><tr><th>Rollup</th><th>Segment</th><th class="num">TY25</th><th class="num">TY23</th><th class="num">Delta</th><th class="num">Index</th></tr></thead>
+            <tbody>
+                <tr><td class="bold">New</td><td>New account</td><td class="num">19,361</td><td class="num">21,773</td><td class="num negative">-2,412</td><td class="num negative">89</td></tr>
+                <tr><td class="bold">New</td><td>Prospect</td><td class="num">12,207</td><td class="num">11,694</td><td class="num positive">+513</td><td class="num positive">104</td></tr>
+                <tr><td class="bold">New</td><td>Skip Year</td><td class="num">8,483</td><td class="num">8,940</td><td class="num negative">-457</td><td class="num negative">95</td></tr>
+                <tr><td class="bold">New</td><td>Winback</td><td class="num">11,507</td><td class="num">10,052</td><td class="num positive">+1,455</td><td class="num positive bold">115</td></tr>
+                <tr><td class="bold">Returning</td><td>First Year Returning</td><td class="num">5,291</td><td class="num">5,761</td><td class="num negative">-470</td><td class="num negative">92</td></tr>
+                <tr><td class="bold">Returning</td><td>Veteran Returning</td><td class="num">9,970</td><td class="num">12,318</td><td class="num negative">-2,348</td><td class="num negative bold">81</td></tr>
+                <tr class="total-row"><td></td><td class="bold">Total</td><td class="num">66,819</td><td class="num">70,538</td><td class="num negative">-3,719</td><td class="num negative">95</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Channel Analysis -->
+    <div class="section">
+        <h2>Channel Performance — Starts</h2>
+        <div style="margin-bottom:1rem;">
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; color:#e7e9ea; font-size:0.9rem;">
+                <input type="checkbox" id="combine-search-toggle" checked onchange="renderChannels()" style="width:16px;height:16px;accent-color:#1d9bf0;">
+                Combine all Search channels
+            </label>
+        </div>
+        <div id="channel-chart" class="chart-container"></div>
+        <div id="channel-table-container"></div>
+        <div class="insight-box" id="channel-insight"></div>
+    </div>
+
+    <!-- 2. S2C -->
+    <div class="section">
+        <h2>S2C: Start to Complete</h2>
+        <p style="color:#71767b; font-size:0.85rem; margin-bottom:0.5rem;">Cohort-based: % of starters who completed.</p>
+        <div style="margin-bottom:1rem; display:flex; gap:1.5rem; flex-wrap:wrap;">
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; color:#e7e9ea; font-size:0.9rem;">
+                <input type="checkbox" id="s2c-ytd-toggle" onchange="renderS2C()" style="width:16px;height:16px;accent-color:#1d9bf0;">
+                Show Full Season YTD
+            </label>
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; color:#e7e9ea; font-size:0.9rem;">
+                <input type="checkbox" id="s2c-ck-toggle" onchange="renderS2C()" style="width:16px;height:16px;accent-color:#1d9bf0;">
+                Include Credit Karma
+            </label>
+        </div>
+        <div id="s2c-table-container"></div>
+        <div class="insight-box" id="s2c-insight"></div>
+    </div>
+
+    <!-- 3. S2I & I2C -->
+    <div class="section">
+        <h2>S2I & I2C: Funnel Conversion</h2>
+        <p style="color:#71767b; font-size:0.85rem; margin-bottom:0.5rem;">S2I = entered income / starts. I2C = completed / entered income.</p>
+        <div style="margin-bottom:1rem; display:flex; gap:1.5rem; flex-wrap:wrap;">
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; color:#e7e9ea; font-size:0.9rem;">
+                <input type="checkbox" id="funnel-ytd-toggle" onchange="renderFunnel()" style="width:16px;height:16px;accent-color:#1d9bf0;">
+                Show Full Season YTD
+            </label>
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; color:#e7e9ea; font-size:0.9rem;">
+                <input type="checkbox" id="funnel-ck-toggle" onchange="renderFunnel()" style="width:16px;height:16px;accent-color:#1d9bf0;">
+                Include Credit Karma
+            </label>
+        </div>
+        <div id="funnel-table-container"></div>
+        <div class="insight-box" id="funnel-insight"></div>
+    </div>
+
+    <!-- S2C by SKU -->
+    <div class="section">
+        <h2>S2C by Start SKU</h2>
+        <p style="color:#71767b; font-size:0.85rem; margin-bottom:0.5rem;">Grouped by start_sku_rollup.</p>
+        <div style="margin-bottom:1rem; display:flex; gap:1.5rem; flex-wrap:wrap;">
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; color:#e7e9ea; font-size:0.9rem;">
+                <input type="checkbox" id="sku-s2c-ytd-toggle" onchange="renderSkuS2C()" style="width:16px;height:16px;accent-color:#1d9bf0;">
+                Show Full Season YTD
+            </label>
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; color:#e7e9ea; font-size:0.9rem;">
+                <input type="checkbox" id="sku-s2c-ck-toggle" onchange="renderSkuS2C()" style="width:16px;height:16px;accent-color:#1d9bf0;">
+                Include Credit Karma
+            </label>
+        </div>
+        <div id="sku-s2c-table-container"></div>
+        <div class="insight-box" id="sku-s2c-insight"></div>
+    </div>
+
+    <!-- SKU Migration -->
+    <div class="section">
+        <h2>SKU Migration — Veteran Returning</h2>
+        <div id="sku-chart" class="chart-container"></div>
+        <div class="insight-box" style="margin-top:1rem;">
+            <strong>Product portfolio shift:</strong> Standalone Deluxe/Premium are down 50%+; TTL Deluxe/Premium/Solopreneur are up 40–550%. 
+            The live-assisted tier is absorbing volume that previously filed in self-service SKUs.
+        </div>
+    </div>
+
+
+    <!-- Strategic Segments -->
+    <div class="section">
+        <h2>Strategic Segment Performance</h2>
+        <p style="color:#71767b; font-size:0.85rem; margin-bottom:1rem;">Source: tax_dm.completes_market_segments joined to PAM. Segments are mutually exclusive (hierarchical assignment).</p>
+        <div id="segment-chart" class="chart-container"></div>
+        <table style="margin-top:1rem;">
+            <thead><tr><th>Strategic Segment</th><th class="num">TY25</th><th class="num">TY23</th><th class="num">Delta</th><th class="num">Index</th></tr></thead>
+            <tbody>
+                <tr><td>1. Young Risers (GenZ)</td><td class="num">10,678</td><td class="num">11,169</td><td class="num negative">-491</td><td class="num negative">96</td></tr>
+                <tr><td>2. Self-Employed</td><td class="num">7,817</td><td class="num">9,048</td><td class="num negative">-1,231</td><td class="num negative bold">86</td></tr>
+                <tr><td>3. Investors</td><td class="num">6,152</td><td class="num">6,396</td><td class="num negative">-244</td><td class="num negative">96</td></tr>
+                <tr><td>4. Low Complexity</td><td class="num">19,585</td><td class="num">23,954</td><td class="num negative">-4,369</td><td class="num negative bold">82</td></tr>
+                <tr><td>5. Mid Complexity</td><td class="num">2,722</td><td class="num">2,899</td><td class="num negative">-177</td><td class="num negative">94</td></tr>
+                <tr class="total-row"><td class="bold">Total</td><td class="num">47,052</td><td class="num">53,479</td><td class="num negative">-6,427</td><td class="num negative bold">88</td></tr>
+            </tbody>
+        </table>
+        <div class="insight-box">
+            <strong>Low Complexity drives 68% of the total gap</strong> (-4,369 of -6,427). Within Low Complexity, <code>lc_diy_leaning</code> (the largest sub-segment) accounts for most of the decline. Self-Employed is down 13.6% — primarily in <code>seb_side_income</code> and <code>seb_full_time</code>. Young Risers and Investors are relatively resilient (-4.4% and -3.8%).
+        </div>
+    </div>
+
+
+
+    <!-- Customer Profile: July vs Full Season -->
+    <div class="section">
+        <h2>Customer Profile: July vs Full Season</h2>
+        <p style="color:#71767b; font-size:0.85rem; margin-bottom:1rem;">How the July segment mix compares to the full season — shows which segments over/under-index in July.</p>
+        <table>
+            <thead><tr><th>Strategic Segment</th><th class="num">TY25 Full</th><th class="num">TY25 July</th><th class="num">Index</th><th class="num">TY24 Full</th><th class="num">TY24 July</th><th class="num">Index</th><th class="num">TY23 Full</th><th class="num">TY23 July</th><th class="num">Index</th></tr></thead>
+            <tbody>
+                <tr><td>Young Risers (GenZ)</td><td class="num">29.8%</td><td class="num">22.9%</td><td class="num negative bold">-6.9pp</td><td class="num">28.1%</td><td class="num">23.7%</td><td class="num negative">-4.4pp</td><td class="num">26.4%</td><td class="num">21.0%</td><td class="num negative">-5.4pp</td></tr>
+                <tr><td>Self-Employed</td><td class="num">9.1%</td><td class="num">16.4%</td><td class="num positive bold">+7.3pp</td><td class="num">9.6%</td><td class="num">15.4%</td><td class="num positive bold">+5.8pp</td><td class="num">9.5%</td><td class="num">17.0%</td><td class="num positive bold">+7.5pp</td></tr>
+                <tr><td>Investors</td><td class="num">9.2%</td><td class="num">13.2%</td><td class="num positive">+4.0pp</td><td class="num">9.0%</td><td class="num">11.0%</td><td class="num positive">+2.0pp</td><td class="num">8.8%</td><td class="num">12.0%</td><td class="num positive">+3.2pp</td></tr>
+                <tr><td>Low Complexity</td><td class="num">45.1%</td><td class="num">41.6%</td><td class="num negative">-3.5pp</td><td class="num">47.2%</td><td class="num">45.1%</td><td class="num negative">-2.1pp</td><td class="num">49.8%</td><td class="num">44.6%</td><td class="num negative">-5.2pp</td></tr>
+                <tr><td>Mid Complexity</td><td class="num">6.7%</td><td class="num">5.8%</td><td class="num negative">-0.9pp</td><td class="num">6.0%</td><td class="num">4.6%</td><td class="num negative">-1.4pp</td><td class="num">5.4%</td><td class="num">5.3%</td><td class="num neutral">-0.1pp</td></tr>
+            </tbody>
+        </table>
+        <div class="insight-box">
+            <strong>The July filer profile is structurally consistent across all three years.</strong>
+            <ul>
+                <li><strong>Self-Employed always over-indexes +6–7pp in July</strong> — Schedule C complexity drives later filing</li>
+                <li><strong>Investors over-index +2–4pp</strong> — K-1s and brokerage statements arrive late</li>
+                <li><strong>Young Risers under-index -5–7pp</strong> — simple returns filed during main season</li>
+                <li>The TY25 July mix shift is not new or unusual — the I2C collapse is hitting the same structural population at worse rates, not a different population</li>
+            </ul>
+        </div>
+    </div>
+
+
+</div>
+
+<script>
+// S2C data — window and YTD, with CK/Non-CK split (arrays: [starts, completes])
+const s2cWindow = [
+    { seg: 'New account', rollup: 'New', ty25_ck: [2289,103], ty25_nck: [17072,4806], ty23_ck: [1239,224], ty23_nck: [20534,7051] },
+    { seg: 'Prospect', rollup: 'New', ty25_ck: [2583,230], ty25_nck: [9624,1456], ty23_ck: [690,146], ty23_nck: [11004,2239] },
+    { seg: 'Skip Year', rollup: 'New', ty25_ck: [1178,169], ty25_nck: [7305,1484], ty23_ck: [358,95], ty23_nck: [8582,2471] },
+    { seg: 'Winback', rollup: 'New', ty25_ck: [1727,217], ty25_nck: [9780,1702], ty23_ck: [356,80], ty23_nck: [9696,2461] },
+    { seg: 'First Year Returning', rollup: 'Returning', ty25_ck: [537,175], ty25_nck: [4754,1997], ty23_ck: [203,78], ty23_nck: [5558,3334] },
+    { seg: 'Veteran Returning', rollup: 'Returning', ty25_ck: [904,402], ty25_nck: [9066,4564], ty23_ck: [123,62], ty23_nck: [12195,8676] },
+];
+const s2cYTD = [
+    { seg: 'New account', rollup: 'New', ty25_ck: [517915,81109], ty25_nck: [6455810,3729388], ty23_ck: [552759,175851], ty23_nck: [6952795,4090340] },
+    { seg: 'Prospect', rollup: 'New', ty25_ck: [2668417,335662], ty25_nck: [3169419,1293210], ty23_ck: [434369,155437], ty23_nck: [3321224,1377718] },
+    { seg: 'Skip Year', rollup: 'New', ty25_ck: [485386,208245], ty25_nck: [2482097,1392242], ty23_ck: [140955,66051], ty23_nck: [2873640,1646860] },
+    { seg: 'Winback', rollup: 'New', ty25_ck: [764437,203747], ty25_nck: [2533058,1174438], ty23_ck: [198092,81032], ty23_nck: [2546536,1220360] },
+    { seg: 'First Year Returning', rollup: 'Returning', ty25_ck: [478766,332825], ty25_nck: [5352036,4178939], ty23_ck: [192989,149364], ty23_nck: [6073662,4971233] },
+    { seg: 'Veteran Returning', rollup: 'Returning', ty25_ck: [1652372,1406062], ty25_nck: [22332088,19844882], ty23_ck: [137858,114992], ty23_nck: [24751045,22370446] },
+];
+
+function renderS2C() {
+    const ytd = document.getElementById('s2c-ytd-toggle').checked;
+    const incCK = document.getElementById('s2c-ck-toggle').checked;
+    const data = ytd ? s2cYTD : s2cWindow;
+    let totS25=0, totC25=0, totS23=0, totC23=0;
+    let html = '<table><thead><tr><th>Rollup</th><th>Segment</th><th class="num">TY25 Starts</th><th class="num">TY25 S2C</th><th class="num">TY23 Starts</th><th class="num">TY23 S2C</th><th class="num">Index</th></tr></thead><tbody>';
+    data.forEach(r => {
+        const s25 = incCK ? r.ty25_ck[0]+r.ty25_nck[0] : r.ty25_nck[0];
+        const c25 = incCK ? r.ty25_ck[1]+r.ty25_nck[1] : r.ty25_nck[1];
+        const s23 = incCK ? r.ty23_ck[0]+r.ty23_nck[0] : r.ty23_nck[0];
+        const c23 = incCK ? r.ty23_ck[1]+r.ty23_nck[1] : r.ty23_nck[1];
+        totS25+=s25; totC25+=c25; totS23+=s23; totC23+=c23;
+        const s2c25 = (c25/s25*100).toFixed(1);
+        const s2c23 = (c23/s23*100).toFixed(1);
+        const idx = Math.round(parseFloat(s2c25)/parseFloat(s2c23)*100);
+        const cls = idx>=100?'positive':'negative';
+        const bold = idx<=80||idx>=120?' bold':'';
+        html += `<tr><td class="bold">${r.rollup}</td><td>${r.seg}</td><td class="num">${s25.toLocaleString()}</td><td class="num">${s2c25}%</td><td class="num">${s23.toLocaleString()}</td><td class="num">${s2c23}%</td><td class="num ${cls}${bold}">${idx}</td></tr>`;
+    });
+    const ts2c25=(totC25/totS25*100).toFixed(1), ts2c23=(totC23/totS23*100).toFixed(1);
+    const tidx=Math.round(parseFloat(ts2c25)/parseFloat(ts2c23)*100);
+    html += `<tr class="total-row"><td></td><td class="bold">Total</td><td class="num">${totS25.toLocaleString()}</td><td class="num">${ts2c25}%</td><td class="num">${totS23.toLocaleString()}</td><td class="num">${ts2c23}%</td><td class="num ${tidx>=100?'positive':'negative'} bold">${tidx}</td></tr>`;
+    html += '</tbody></table>';
+    document.getElementById('s2c-table-container').innerHTML = html;
+
+    if (ytd && incCK) {
+        document.getElementById('s2c-insight').innerHTML = '<strong>Full season YTD:</strong> S2C declines are much smaller at the season level (-2 to -5pp for New segments, -4 to -6pp for Returning) vs the prior 16-day window cohort. Late starters convert at structurally lower rates, and TY25 is below TY23 at every segment.';
+    } else if (ytd && !incCK) {
+        document.getElementById('s2c-insight').innerHTML = '<strong>Full season YTD (excl. CK):</strong> Non-CK S2C is modestly softer (-1 to -4pp). Removing CK raises absolute S2C levels (CK starters have very low conversion) but the year-over-year trend stays similar.';
+    } else if (!ytd && incCK) {
+        document.getElementById('s2c-insight').innerHTML = '<strong>S2C declined across every segment in the prior 16-day window.</strong> Returning users show the steepest decline: Veteran Returning -21.1pp (49.8% vs 70.9%), First Year Returning -18.1pp. Among New segments, Skip Year (-9.2pp) and Winback (-8.6pp) are softest.';
+    } else {
+        document.getElementById('s2c-insight').innerHTML = '<strong>Excluding CK, S2C rates are higher in absolute terms</strong> (CK starters convert at very low rates, diluting overall S2C). Non-CK Veteran Returning S2C is 50.3% vs 71.1% in TY23 — still a meaningful -20.8pp decline. The softness is not driven by CK mix.';
+    }
+}
+renderS2C();
+
+// Funnel data (CK and Non-CK split) — window and YTD
+const funnelWindow = [
+    { seg: 'New account', rollup: 'New', ty25_ck: [2289,200,78], ty25_nck: [17072,7733,4498], ty23_ck: [1239,304,190], ty23_nck: [20534,9543,6202] },
+    { seg: 'Prospect', rollup: 'New', ty25_ck: [2583,459,208], ty25_nck: [9624,2802,1384], ty23_ck: [690,197,118], ty23_nck: [11004,3338,1925] },
+    { seg: 'Skip Year', rollup: 'New', ty25_ck: [1178,291,153], ty25_nck: [7305,2245,1363], ty23_ck: [358,122,79], ty23_nck: [8582,2921,2070] },
+    { seg: 'Winback', rollup: 'New', ty25_ck: [1727,389,190], ty25_nck: [9780,2871,1603], ty23_ck: [356,115,69], ty23_nck: [9696,3204,2082] },
+    { seg: 'First Year Returning', rollup: 'Returning', ty25_ck: [537,286,168], ty25_nck: [4754,2929,1879], ty23_ck: [203,103,69], ty23_nck: [5558,3544,2930] },
+    { seg: 'Veteran Returning', rollup: 'Returning', ty25_ck: [904,603,379], ty25_nck: [9066,6530,4333], ty23_ck: [123,65,53], ty23_nck: [12195,8691,7543] },
+];
+const funnelYTD = [
+    { seg: 'New account', rollup: 'New', ty25_ck: [517915,114709,73037], ty25_nck: [6455810,4924099,3650817], ty23_ck: [552759,253913,164661], ty23_nck: [6952795,5383879,3962478] },
+    { seg: 'Prospect', rollup: 'New', ty25_ck: [2668417,569366,316019], ty25_nck: [3169419,1992562,1266972], ty23_ck: [434369,248514,148547], ty23_nck: [3321224,2157556,1322891] },
+    { seg: 'Skip Year', rollup: 'New', ty25_ck: [485386,291495,201713], ty25_nck: [2482097,1877021,1364378], ty23_ck: [140955,93093,62500], ty23_nck: [2873640,2219398,1580549] },
+    { seg: 'Winback', rollup: 'New', ty25_ck: [764437,319156,194285], ty25_nck: [2533058,1753925,1145741], ty23_ck: [198092,122019,76899], ty23_nck: [2546536,1827689,1168389] },
+    { seg: 'First Year Returning', rollup: 'Returning', ty25_ck: [478766,407376,326226], ty25_nck: [5352036,4860424,4121212], ty23_ck: [192989,171714,146614], ty23_nck: [6073662,5520884,4857986] },
+    { seg: 'Veteran Returning', rollup: 'Returning', ty25_ck: [1652372,1553488,1392376], ty25_nck: [22332088,21383706,19662488], ty23_ck: [137858,126614,112858], ty23_nck: [24751045,23548524,21959667] },
+];
+
+function renderFunnel() {
+    const incCK = document.getElementById('funnel-ck-toggle').checked;
+    const ytd = document.getElementById('funnel-ytd-toggle').checked;
+    const funnelRaw = ytd ? funnelYTD : funnelWindow;
+
+    let html = '<table><thead><tr><th>Rollup</th><th>Segment</th><th class="num">TY25 Starts</th><th class="num">TY25 S2I</th><th class="num">TY23 S2I</th><th class="num">S2I Idx</th><th class="num">TY25 I2C</th><th class="num">TY23 I2C</th><th class="num">I2C Idx</th></tr></thead><tbody>';
+    let totS25=0, totI25=0, totC25=0, totS23=0, totI23=0, totC23=0;
+    funnelRaw.forEach(r => {
+        const s25 = incCK ? r.ty25_ck[0]+r.ty25_nck[0] : r.ty25_nck[0];
+        const i25 = incCK ? r.ty25_ck[1]+r.ty25_nck[1] : r.ty25_nck[1];
+        const c25 = incCK ? r.ty25_ck[2]+r.ty25_nck[2] : r.ty25_nck[2];
+        const s23 = incCK ? r.ty23_ck[0]+r.ty23_nck[0] : r.ty23_nck[0];
+        const i23 = incCK ? r.ty23_ck[1]+r.ty23_nck[1] : r.ty23_nck[1];
+        const c23 = incCK ? r.ty23_ck[2]+r.ty23_nck[2] : r.ty23_nck[2];
+        totS25+=s25; totI25+=i25; totC25+=c25; totS23+=s23; totI23+=i23; totC23+=c23;
+        const s2i25 = (i25/s25*100).toFixed(1);
+        const s2i23 = (i23/s23*100).toFixed(1);
+        const i2c25 = i25>0 ? (c25/i25*100).toFixed(1) : '—';
+        const i2c23 = i23>0 ? (c23/i23*100).toFixed(1) : '—';
+        const s2iIdx = Math.round(parseFloat(s2i25)/parseFloat(s2i23)*100);
+        const i2cIdx = (i2c25!=='—'&&i2c23!=='—') ? Math.round(parseFloat(i2c25)/parseFloat(i2c23)*100) : '—';
+        const s2iCls = s2iIdx>=100?'positive':'negative';
+        const i2cCls = i2cIdx!=='—'?(i2cIdx>=100?'positive':'negative'):'';
+        const i2cBold = i2cIdx!=='—'&&(i2cIdx<=80||i2cIdx>=120)?' bold':'';
+        html += `<tr><td class="bold">${r.rollup}</td><td>${r.seg}</td><td class="num">${s25.toLocaleString()}</td><td class="num">${s2i25}%</td><td class="num">${s2i23}%</td><td class="num ${s2iCls}">${s2iIdx}</td><td class="num">${i2c25}%</td><td class="num">${i2c23}%</td><td class="num ${i2cCls}${i2cBold}">${i2cIdx}</td></tr>`;
+    });
+    const ts2i25=(totI25/totS25*100).toFixed(1), ts2i23=(totI23/totS23*100).toFixed(1);
+    const ti2c25=(totC25/totI25*100).toFixed(1), ti2c23=(totC23/totI23*100).toFixed(1);
+    const ts2iIdx=Math.round(parseFloat(ts2i25)/parseFloat(ts2i23)*100);
+    const ti2cIdx=Math.round(parseFloat(ti2c25)/parseFloat(ti2c23)*100);
+    html += `<tr class="total-row"><td></td><td class="bold">Total</td><td class="num">${totS25.toLocaleString()}</td><td class="num">${ts2i25}%</td><td class="num">${ts2i23}%</td><td class="num ${ts2iIdx>=100?'positive':'negative'}">${ts2iIdx}</td><td class="num">${ti2c25}%</td><td class="num">${ti2c23}%</td><td class="num ${ti2cIdx>=100?'positive':'negative'} bold">${ti2cIdx}</td></tr>`;
+    html += '</tbody></table>';
+    document.getElementById('funnel-table-container').innerHTML = html;
+
+    if (ytd) {
+        document.getElementById('funnel-insight').innerHTML = '<strong>Full season YTD:</strong> S2I is broadly stable or improving (+1–3pp for most segments). I2C shows moderate declines (-2 to -5pp) — much milder than the window cohort. The prior 16-day window I2C decline (-17 to -28pp) is not representative of the full-season trend — it\'s specific to the late-season cohort.';
+    } else if (incCK) {
+        document.getElementById('funnel-insight').innerHTML = '<strong>I2C is the primary funnel breakdown.</strong> S2I is modestly softer (-3–5pp for New segments), but I2C collapses across the board: Veteran Returning -20.7pp, First Year Returning -18.5pp. This points to a post-income bottleneck rather than early-funnel abandonment.';
+    } else {
+        document.getElementById('funnel-insight').innerHTML = '<strong>Excluding CK, the I2C picture is even sharper.</strong> Non-CK starters have higher S2I rates (CK dilutes with low-income-entry starts), but the I2C degradation persists — Veteran Returning and First Year Returning still collapse 15–20pp. The post-income bottleneck is not a CK mix effect.';
+    }
+}
+renderFunnel();
+
+// S2C by SKU data — window and YTD, with CK/Non-CK split (arrays: [starts, completes])
+const skuS2cWindow = [
+    { sku: 'DIY FREE', ty25_ck: [2853,400], ty25_nck: [22484,5921], ty23_ck: [1090,319], ty23_nck: [25961,9496] },
+    { sku: 'DIY PAID', ty25_ck: [1198,336], ty25_nck: [17280,5332], ty23_ck: [1065,254], ty23_nck: [28168,12184] },
+    { sku: 'DIWM NON-BASIC', ty25_ck: [771,272], ty25_nck: [8283,3062], ty23_ck: [256,52], ty23_nck: [6711,3086] },
+    { sku: 'DIWM BASIC', ty25_ck: [647,70], ty25_nck: [3563,867], ty23_ck: [91,15], ty23_nck: [2098,614] },
+    { sku: 'CK DIY FREE', ty25_ck: [3179,163], ty25_nck: [604,73], ty23_ck: [0,0], ty23_nck: [0,0] },
+    { sku: 'FS', ty25_ck: [400,23], ty25_nck: [2877,365], ty23_ck: [418,33], ty23_nck: [3190,552] },
+    { sku: 'BIZ TAX PERSONAL', ty25_ck: [170,32], ty25_nck: [2510,389], ty23_ck: [0,0], ty23_nck: [1386,294] },
+];
+const skuS2cYTD = [
+    { sku: 'DIY FREE', ty25_ck: [3878396,947035], ty25_nck: [12635843,8842087], ty23_ck: [684580,368664], ty23_nck: [14746671,11362428] },
+    { sku: 'DIY PAID', ty25_ck: [897358,670499], ty25_nck: [14733331,11179890], ty23_ck: [701784,267803], ty23_nck: [22010183,17181667] },
+    { sku: 'DIWM NON-BASIC', ty25_ck: [863177,681488], ty25_nck: [10529181,8815019], ty23_ck: [94685,44835], ty23_nck: [5858648,4667980] },
+    { sku: 'DIWM BASIC', ty25_ck: [535833,159982], ty25_nck: [2251701,1523685], ty23_ck: [74448,38952], ty23_nck: [2577642,1780919] },
+    { sku: 'CK DIY FREE', ty25_ck: [11855,4687], ty25_nck: [26341,13813], ty23_ck: [0,0], ty23_nck: [0,0] },
+    { sku: 'FS', ty25_ck: [325924,69087], ty25_nck: [1407635,785569], ty23_ck: [98245,21495], ty23_nck: [1173295,613482] },
+    { sku: 'BIZ TAX PERSONAL', ty25_ck: [54750,34872], ty25_nck: [740476,453036], ty23_ck: [3122,934], ty23_nck: [142451,66781] },
+];
+
+function renderSkuS2C() {
+    const ytd = document.getElementById('sku-s2c-ytd-toggle').checked;
+    const incCK = document.getElementById('sku-s2c-ck-toggle').checked;
+    const data = ytd ? skuS2cYTD : skuS2cWindow;
+
+    let html = '<table><thead><tr><th>Start SKU Rollup</th><th class="num">TY25 Starts</th><th class="num">TY25 S2C</th><th class="num">TY23 Starts</th><th class="num">TY23 S2C</th><th class="num">S2C Index</th><th class="num">Starts Index</th></tr></thead><tbody>';
+    data.forEach(r => {
+        const s25 = incCK ? r.ty25_ck[0]+r.ty25_nck[0] : r.ty25_nck[0];
+        const c25 = incCK ? r.ty25_ck[1]+r.ty25_nck[1] : r.ty25_nck[1];
+        const s23 = incCK ? r.ty23_ck[0]+r.ty23_nck[0] : r.ty23_nck[0];
+        const c23 = incCK ? r.ty23_ck[1]+r.ty23_nck[1] : r.ty23_nck[1];
+        if (s25 < 100 && s23 < 100) return;
+        const s2c25 = s25>0 ? (c25/s25*100).toFixed(1) : '—';
+        const s2c23 = s23>0 ? (c23/s23*100).toFixed(1) : '—';
+        const s2cIdx = (s2c25!=='—'&&s2c23!=='—'&&parseFloat(s2c23)>0) ? Math.round(parseFloat(s2c25)/parseFloat(s2c23)*100) : '—';
+        const startsIdx = s23>0 ? Math.round(s25/s23*100) : 'new';
+        const s2cCls = s2cIdx==='—'?'neutral':(s2cIdx>=100?'positive':'negative');
+        const s2cBold = s2cIdx!=='—'&&(s2cIdx<=80||s2cIdx>=120)?' bold':'';
+        const stCls = startsIdx==='new'?'positive':(startsIdx>=100?'positive':'negative');
+        const stBold = startsIdx!=='new'&&(startsIdx<=80||startsIdx>=120)?' bold':'';
+        html += `<tr><td>${r.sku}</td><td class="num">${s25.toLocaleString()}</td><td class="num">${s2c25}%</td><td class="num">${s23>0?s23.toLocaleString():'—'}</td><td class="num">${s2c23}%</td><td class="num ${s2cCls}${s2cBold}">${s2cIdx}</td><td class="num ${stCls}${stBold}">${startsIdx}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('sku-s2c-table-container').innerHTML = html;
+
+    if (ytd && incCK) {
+        document.getElementById('sku-s2c-insight').innerHTML = '<strong>Full season YTD:</strong> DIWM Non-Basic (index 192 starts) is the biggest volume gainer with strong S2C. DIY Paid lost significant share (index 69 starts) as the TTL/DIWM migration continued. CK DIY FREE is a new entry diluting overall conversion.';
+    } else if (ytd && !incCK) {
+        document.getElementById('sku-s2c-insight').innerHTML = '<strong>Full season YTD (excl. CK):</strong> Non-CK S2C rates are higher across every SKU. DIY Free S2C index improves from the all-inclusive view as CK starters (low conversion) are removed.';
+    } else if (!ytd && incCK) {
+        document.getElementById('sku-s2c-insight').innerHTML = '<strong>S2C declined for every SKU in the prior 16-day window, but volume stories differ.</strong> DIY PAID lost 37% of starts (index 63) — the biggest volume drain. DIWM NON-BASIC grew (index 130) with the highest S2C (36.8%). CK DIY FREE is new and converts at just 6.2%, diluting overall S2C.';
+    } else {
+        document.getElementById('sku-s2c-insight').innerHTML = '<strong>Excluding CK, the S2C picture is cleaner.</strong> DIY FREE S2C rises from ~25% to ~26% (CK starts dilute it). The underlying conversion decline is present across all SKUs regardless of CK inclusion — this is not a CK mix effect.';
+    }
+}
+renderSkuS2C();
+
+// Channel starts data
+const channelRaw = [
+    { channel: 'Organic Search', group: 'search', ty25: 24947, ty23: 22346 },
+    { channel: 'Paid Search - Brand', group: 'search', ty25: 10511, ty23: 16167 },
+    { channel: 'Paid Search - Generic', group: 'search', ty25: 2391, ty23: 7410 },
+    { channel: 'Credit Karma', group: 'other', ty25: 9218, ty23: 2969 },
+    { channel: 'Non-Campaign', group: 'other', ty25: 8727, ty23: 11808 },
+    { channel: 'CRM', group: 'other', ty25: 4967, ty23: 4494 },
+    { channel: 'Digital Media', group: 'other', ty25: 1135, ty23: 1014 },
+    { channel: 'Other', group: 'other', ty25: 1087, ty23: 872 },
+    { channel: 'Affiliate', group: 'other', ty25: 543, ty23: 522 },
+    { channel: 'FI Channel', group: 'other', ty25: 509, ty23: 719 },
+    { channel: 'Social', group: 'other', ty25: 15, ty23: 100 },
+];
+
+function renderChannels() {
+    const combine = document.getElementById('combine-search-toggle').checked;
+    let data;
+    if (combine) {
+        const searchTY25 = channelRaw.filter(d => d.group==='search').reduce((s,d) => s+d.ty25, 0);
+        const searchTY23 = channelRaw.filter(d => d.group==='search').reduce((s,d) => s+d.ty23, 0);
+        data = [{ channel: 'All Search', ty25: searchTY25, ty23: searchTY23 }, ...channelRaw.filter(d => d.group==='other')];
+    } else {
+        data = channelRaw;
+    }
+    data.sort((a,b) => b.ty25 - a.ty25);
+
+    const labels = data.map(d => d.channel.replace('Paid Search - ','PS - '));
+    Plotly.react('channel-chart', [
+        { x: labels, y: data.map(d => d.ty25), name: 'TY25', type: 'bar', marker: { color: '#1d9bf0' } },
+        { x: labels, y: data.map(d => d.ty23), name: 'TY23', type: 'bar', marker: { color: '#536471' } }
+    ], {
+        title: { text: 'Starts by Channel', font: { color: '#fff', size: 14 } },
+        barmode: 'group',
+        paper_bgcolor: '#16202a', plot_bgcolor: '#16202a',
+        font: { color: '#8899a6', size: 11 },
+        xaxis: { gridcolor: '#2f3336' },
+        yaxis: { gridcolor: '#2f3336', title: 'Starts' },
+        legend: { orientation: 'h', y: -0.2 },
+        margin: { t: 50, b: 80 }
+    });
+
+    const totalTY25 = data.reduce((s,d) => s+d.ty25, 0);
+    const totalTY23 = data.reduce((s,d) => s+d.ty23, 0);
+    const totalDelta = totalTY25 - totalTY23;
+    const totalIdx = Math.round(totalTY25/totalTY23*100);
+    let html = '<table style="margin-top:1rem;"><thead><tr><th>Channel</th><th class="num">TY25</th><th class="num">TY23</th><th class="num">Delta</th><th class="num">Index</th></tr></thead><tbody>';
+    data.forEach(d => {
+        const delta = d.ty25 - d.ty23;
+        const idx = Math.round(d.ty25/d.ty23*100);
+        const cls = idx >= 100 ? 'positive' : 'negative';
+        const bold = idx <= 80 || idx >= 120 ? ' bold' : '';
+        html += `<tr><td>${d.channel}</td><td class="num">${d.ty25.toLocaleString()}</td><td class="num">${d.ty23.toLocaleString()}</td><td class="num ${cls}">${delta>=0?'+':''}${delta.toLocaleString()}</td><td class="num ${cls}${bold}">${idx}</td></tr>`;
+    });
+    const tCls = totalIdx >= 100 ? 'positive' : 'negative';
+    html += `<tr class="total-row"><td class="bold">Total</td><td class="num">${totalTY25.toLocaleString()}</td><td class="num">${totalTY23.toLocaleString()}</td><td class="num ${tCls}">${totalDelta>=0?'+':''}${totalDelta.toLocaleString()}</td><td class="num ${tCls} bold">${totalIdx}</td></tr>`;
+    html += '</tbody></table>';
+    document.getElementById('channel-table-container').innerHTML = html;
+
+    if (combine) {
+        document.getElementById('channel-insight').innerHTML = '<strong>All Search combined (Organic + Paid Brand + Paid Generic) is down -17.5%</strong> — from 45,923 to 37,849 starts. Search lost 8,074 starts while Credit Karma gained 6,249. The search-to-CK substitution is significant but not 1:1.';
+    } else {
+        document.getElementById('channel-insight').innerHTML = '<strong>Credit Karma (+6,249) and Organic Search (+2,601) are the growth engines.</strong> But Paid Search collapses offset them: Brand -5,656 (-35%) and Generic -5,019 (-68%). Non-Campaign is also significantly down (-3,081). Net effect: starts only down -5.3% because CK volume nearly fills the paid search hole.';
+    }
+}
+renderChannels();
+
+// SKU chart
+const skuData = [
+    { sku: 'PAID DELUXE', ty25: 3848, ty23: 7928 },
+    { sku: 'PAID PREMIUM', ty25: 3104, ty23: 6993 },
+    { sku: 'TTL DELUXE', ty25: 4060, ty23: 2225 },
+    { sku: 'TTL PREMIUM', ty25: 5864, ty23: 4067 },
+    { sku: 'TTL SOLOPRENEUR', ty25: 1030, ty23: 158 },
+    { sku: 'FREE TTO', ty25: 2290, ty23: 3258 },
+    { sku: 'TTL BASIC', ty25: 805, ty23: 419 },
+    { sku: 'TTLF FORMS', ty25: 726, ty23: 313 },
+];
+
+const skuTrace1 = {
+    x: skuData.map(d => d.sku),
+    y: skuData.map(d => d.ty25),
+    name: 'TY25',
+    type: 'bar',
+    marker: { color: '#1d9bf0' }
+};
+const skuTrace2 = {
+    x: skuData.map(d => d.sku),
+    y: skuData.map(d => d.ty23),
+    name: 'TY23',
+    type: 'bar',
+    marker: { color: '#536471' }
+};
+
+Plotly.newPlot('sku-chart', [skuTrace1, skuTrace2], {
+    title: { text: 'Veteran Returning — SKU Volume Shift', font: { color: '#fff', size: 14 } },
+    barmode: 'group',
+    paper_bgcolor: '#16202a',
+    plot_bgcolor: '#16202a',
+    font: { color: '#8899a6', size: 11 },
+    xaxis: { gridcolor: '#2f3336' },
+    yaxis: { gridcolor: '#2f3336', title: 'Completes' },
+    legend: { orientation: 'h', y: -0.2 },
+    margin: { t: 50, b: 80 },
+    annotations: [
+        { x: 'PAID DELUXE', y: 7928, text: 'Idx 49', showarrow: false, yshift: 10, font: { color: '#f4212e', size: 10 } },
+        { x: 'PAID PREMIUM', y: 6993, text: 'Idx 44', showarrow: false, yshift: 10, font: { color: '#f4212e', size: 10 } },
+        { x: 'TTL DELUXE', y: 4060, text: 'Idx 182', showarrow: false, yshift: 10, font: { color: '#00ba7c', size: 10 } },
+        { x: 'TTL PREMIUM', y: 5864, text: 'Idx 144', showarrow: false, yshift: 10, font: { color: '#00ba7c', size: 10 } },
+        { x: 'TTL SOLOPRENEUR', y: 1030, text: 'Idx 652', showarrow: false, yshift: 10, font: { color: '#00ba7c', size: 10 } },
+    ]
+}, { responsive: true });
+
+// Tab switching
+function showTab(id) {
+    const parent = event.target.closest('.section');
+    parent.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    parent.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+}
+function showSegTab(id) {
+    const parent = event.target.closest('.section');
+    parent.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    parent.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// Strategic Segment chart
+const segData = [
+    { seg: 'Young Risers\n(GenZ)', ty25: 10678, ty23: 11169 },
+    { seg: 'Self-Employed', ty25: 7817, ty23: 9048 },
+    { seg: 'Investors', ty25: 6152, ty23: 6396 },
+    { seg: 'Low Complexity', ty25: 19585, ty23: 23954 },
+    { seg: 'Mid Complexity', ty25: 2722, ty23: 2899 },
+];
+Plotly.newPlot('segment-chart', [
+    { x: segData.map(d => d.seg), y: segData.map(d => d.ty25), name: 'TY25', type: 'bar', marker: { color: '#1d9bf0' } },
+    { x: segData.map(d => d.seg), y: segData.map(d => d.ty23), name: 'TY23', type: 'bar', marker: { color: '#536471' } }
+], {
+    title: { text: 'Completes by Strategic Segment', font: { color: '#fff', size: 14 } },
+    barmode: 'group',
+    paper_bgcolor: '#16202a', plot_bgcolor: '#16202a',
+    font: { color: '#8899a6', size: 11 },
+    xaxis: { gridcolor: '#2f3336' },
+    yaxis: { gridcolor: '#2f3336', title: 'Completes' },
+    legend: { orientation: 'h', y: -0.25 },
+    margin: { t: 50, b: 80 },
+    annotations: [
+        { x: 'Young Risers\n(GenZ)', y: 11169, text: 'Idx 96', showarrow: false, yshift: 10, font: { color: '#f4212e', size: 10 } },
+        { x: 'Self-Employed', y: 9048, text: 'Idx 86', showarrow: false, yshift: 10, font: { color: '#f4212e', size: 10 } },
+        { x: 'Investors', y: 6396, text: 'Idx 96', showarrow: false, yshift: 10, font: { color: '#f4212e', size: 10 } },
+        { x: 'Low Complexity', y: 23954, text: 'Idx 82', showarrow: false, yshift: 10, font: { color: '#f4212e', size: 10 } },
+        { x: 'Mid Complexity', y: 2899, text: 'Idx 94', showarrow: false, yshift: 10, font: { color: '#f4212e', size: 10 } },
+    ]
+}, { responsive: true });
+
+
+</script>
+</body>
+</html>
