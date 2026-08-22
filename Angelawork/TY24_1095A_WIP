@@ -1,0 +1,34 @@
+-- Yes on Standalone or Gateway and WIP;
+
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_yes as (
+    select distinct c.pseudonym_id
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024' 
+        and (c.ui_object_detail = 'dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-0' or c.ui_object_detail like 'aca-aca5-views-0-fields-choice-Has1095A-choices-0')
+        and c.load_date > '20250101'
+)
+;
+
+
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_edit as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'S1040PERbaca7'
+        and c.ui_object_detail like 'edt%'
+        and c.load_date > '20250101'
+)
+;
+
+select count(distinct pam.pseudonym_id)
+from tax_rpt.product_analytics_master pam
+left join awsdatacatalog.cgan_ustax_ws.aw_1095a_yes a
+    on pam.pseudonym_id = a.pseudonym_id
+left join awsdatacatalog.cgan_ustax_ws.aw_1095a_edit e
+    on pam.pseudonym_id = e.pseudonym_id
+where pam.tax_year = 2024
+    and pam.first_start_date is not null
+    and pam.completed_flag = 0
+    and a.pseudonym_id is not null
+    and e.pseudonym_id is null
+;

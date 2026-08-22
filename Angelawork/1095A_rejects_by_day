@@ -1,0 +1,25 @@
+-- 1095-A rejects by day;
+
+with rej as (
+    select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2023
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2023
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+)
+
+select date(rej.first_efile_status_timestamp) as dt
+    , count(distinct rej.auth_id) as rejects_1095A
+from rej
+group by 1
+order by 1
+;

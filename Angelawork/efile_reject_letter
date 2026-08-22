@@ -1,0 +1,113 @@
+-- verify cdp counts;
+select days_since_reject
+    , count(distinct auth_id)
+from (
+    select pam.auth_id
+        , pam.first_fed_efile_rejected_date
+        , pam.first_fed_efile_accepted_date
+        , pam.first_print_to_mail_date_adj
+        , case when pam.first_fed_efile_accepted_date is not null or pam.first_print_to_mail_date_adj is not null then 1 else 0 end as resolved_flag
+        , date_diff('day',date(pam.first_fed_efile_rejected_date),current_date) as days_since_reject
+    from dlprd.tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2021
+        and pam.nonffa_flag = 1
+        and pam.first_fed_efile_rejected_date is not null
+        and date(pam.first_fed_efile_rejected_date) >= date('2022-04-12')
+) a
+where resolved_flag = 1
+group by 1
+order by 1
+;
+
+
+-- unresolved e-file rejects aged 15 days;
+with tax_date as (
+    select distinct td.tax_date
+        , td.tax_day
+        , td2.tax_date as date_ty21
+    from dlprd.tax_dm.dim_tax_date td
+    left join dlprd.tax_dm.dim_tax_date td2
+        on td.tax_day = td2.tax_day
+            and td2.filing_year = 2021
+    where td.filing_year = 2018
+),
+
+qualified as (
+    select b.intervention_date
+        , count(case when b.qualifies = 1 then b.auth_id end) as qualifies_for_letter
+    from (
+        select a.*
+            , case when a.intervention_date <= a.resolution_date or a.resolution_date is null then 1 else 0 end as qualifies
+        from (
+            select pam.auth_id
+                , date(pam.first_fed_efile_rejected_date) as rejected_date
+                , date(pam.first_fed_efile_accepted_date) as accepted_date
+                , pam.first_print_to_mail_date_adj
+                , date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj)) as resolution_date
+                , date_diff('day',date(pam.first_fed_efile_rejected_date),date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj))) as days_since_reject
+                , date_add('day',15,date(pam.first_fed_efile_rejected_date)) as intervention_date
+            from dlprd.tax_rpt.product_analytics_master pam
+            where pam.tax_year = 2018
+                and pam.nonffa_flag = 1
+                and pam.first_fed_efile_rejected_date is not null
+        ) a
+    ) b
+    group by 1
+    order by 1
+)
+
+select tax_date.date_ty21
+    , coalesce(qualifies_for_letter,0)*1.22 as forecast
+from tax_date
+left join qualified
+    on tax_date.tax_date = qualified.intervention_date
+order by 1
+;
+
+
+
+select count(distinct a.auth_id) as size
+from (
+    -- get most recent e-file status;
+    select ef.taxfiler_id
+      , ef.filing_id
+      , ef.auth_id
+      , ef.efile_status_code_id
+      , st.efile_status_description
+      , ef.efile_status_timestamp
+      , row_number() over(partition by ef.taxfiler_id order by ef.efile_status_timestamp desc) as most_recent
+    from dlprd.tax_dm.fact_efile_status ef 
+    inner join dlprd.tax_dm.dim_filing_type t on ef.filing_type_id = t.filing_type_id      
+    left join dlprd.tax_dm.fact_efile_reject_error re on ef.change_id = re.change_id  
+    left join dlprd.tax_dm.dim_efile_reject_code rc on re.efile_reject_code_id = rc.efile_reject_code_id
+    left join dlprd.tax_dm.DIM_EFILE_STATUS_CODE st
+      on ef.efile_status_code_id = st.efile_status_code_id
+    where ef.tax_year = 2021
+    and agency = 'US' and form_family = 'IIT'
+    and date(ef.efile_status_timestamp) <= current_date
+    and ef.auth_id is not null
+) a
+left join (
+    -- logged in within last 15 days;
+    select distinct fa.auth_id
+    from dlprd.tax_dm.fact_authentication fa
+    where fa.tax_year = 2021
+        and date(fa.auth_timestamp) between date('2022-04-13') and date('2022-04-28')
+) login
+    on a.auth_id = login.auth_id
+where a.most_recent = 1
+    and a.efile_status_description = 'REJECTED_AGENCY'
+    and date(a.efile_status_timestamp) > date('2022-04-12')
+    and login.auth_id is null
+;
+
+
+select pam.tax_year
+    , count(distinct pam.auth_id)
+from dlprd.tax_rpt.product_analytics_master pam
+where pam.tax_year >= 2018
+    and pam.nonffa_flag = 1
+    and pam.first_fed_efile_rejected_date is not null
+group by 1
+order by 1
+;

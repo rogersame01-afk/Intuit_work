@@ -1,0 +1,41 @@
+/* E-File Reject Rate */
+
+select pam.tax_year
+    , count(distinct case when pam.first_fed_efile_rejected_date is not null then pam.auth_id end) as rejected_count
+    , count(distinct case when pam.first_completed_date is not null then pam.auth_id end) as completes
+    , count(distinct case when pam.first_fed_efile_rejected_date is not null then pam.auth_id end)*1.0/count(distinct case when pam.first_completed_date is not null then pam.auth_id end)*1.0 as reject_rate
+from dlprd.tax_rpt.product_analytics_master pam
+where pam.tax_year >= 2020
+group by 1
+order by 1
+;
+
+
+/* Refile Success Rate */
+
+select pam.tax_year
+    , count(distinct case when pam.first_fed_efile_rejected_date is not null then pam.auth_id end) as rejected_count
+    , count(distinct case when pam.first_fed_efile_accepted_date is not null or pam.first_print_to_mail_date_adj is not null then pam.auth_id end) as resolved_count
+    , count(distinct case when pam.first_fed_efile_accepted_date is not null or pam.first_print_to_mail_date_adj is not null then pam.auth_id end)*1.0/count(distinct case when pam.first_fed_efile_rejected_date is not null then pam.auth_id end)*1.0 as refile_success_rate
+from dlprd.tax_rpt.product_analytics_master pam
+where pam.tax_year >= 2020
+    and pam.first_fed_efile_rejected_date is not null
+group by 1
+order by 1
+;
+
+
+/* E-File Error Count by Customer */
+
+select re.auth_id
+    , re.tax_year
+    , count(re.auth_id) as num_rejects
+from dlprd.tax_dm.fact_efile_reject_error re
+left join dlprd.tax_dm.dim_efile_reject_code rc
+    on re.efile_reject_code_id = rc.efile_reject_code_id
+where re.filing_type_id = '244' -- fed 
+    and re.tax_year >= 2020
+    and re.auth_id <> -1
+group by 1,2
+limit 100
+;

@@ -1,0 +1,165 @@
+-- get first state reject date and first state efile accepted date;
+
+create table awsdatacatalog.cgan_ustax_ws.aw_fy24_state_efile as (
+    with rejected as (
+        select st.*
+            , row_number() over(partition by st.auth_id order by st.efile_status_timestamp) as rnum
+        from dlprd.tax_dm.fact_efile_status st
+        inner join dlprd.tax_rpt.product_analytics_master pam -- tto only;
+            on st.auth_id = pam.auth_id
+                and st.tax_year = pam.tax_year
+        where st.efile_status_code_id = 5 -- REJECTED_AGENCY
+            and st.filing_type_id <> '244' -- not IRS
+            and st.tax_year = 2023
+            and st.auth_id <> -1
+    ),
+    
+    accepted as (
+        select st.*
+            , row_number() over(partition by st.auth_id order by st.efile_status_timestamp) as rnum
+            , pam.first_fed_efile_rejected_date
+        from dlprd.tax_dm.fact_efile_status st
+        inner join dlprd.tax_rpt.product_analytics_master pam -- tto only;
+            on st.auth_id = pam.auth_id
+                and st.tax_year = pam.tax_year
+        where st.efile_status_code_id = 7 -- SUCCEEDED_AGENCY
+            and st.filing_type_id <> '244' -- not IRS
+            and st.tax_year = 2023
+            and st.auth_id <> -1
+    )
+    
+    select r.auth_id
+        , r.efile_status_timestamp as first_state_efile_rejected_date
+        , a.efile_status_timestamp as first_state_efile_accepted_date
+    from rejected r
+    left join accepted a
+        on r.auth_id = a.auth_id
+            and a.rnum = 1
+            and a.efile_status_timestamp > r.efile_status_timestamp
+    where r.rnum = 1
+)
+;
+
+select * from awsdatacatalog.cgan_ustax_ws.aw_fy24_state_efile limit 100;
+
+
+-- ty24 forecast, Fed E-File Reject Live OB Calls (EPC) - 2 Days Post-Rejection;
+with history
+as								
+(								
+    select								
+    b.intervention_date								
+    ,count(case when b.qualifies = 1 then b.auth_id end) as qualifies_for_outreach
+    from (								
+    								
+        select a.*								
+        , case when a.intervention_date <= a.resolution_date or a.resolution_date is null then 1 else 0 end as qualifies								
+        from (								
+            select s.auth_id
+                , date(s.first_state_efile_rejected_date) as rejected_date
+                , date(s.first_state_efile_accepted_date) as accepted_date
+                , date(s.first_state_efile_accepted_date) as resolution_date
+                , date_diff('day',date(s.first_state_efile_rejected_date),date(s.first_state_efile_accepted_date)) as days_since_reject								
+                , date_add('day',2,date(s.first_state_efile_rejected_date)) as intervention_date								
+            from awsdatacatalog.cgan_ustax_ws.aw_fy24_state_efile s
+        ) a								
+    								
+    ) b								
+    group by 1								
+    order by 1								
+),							
+
+tax_date as (								
+    select distinct td.tax_pt_date as date_ty23
+        , td.tax_day
+        , td2.tax_pt_date as date_ty24
+    from dlprd.common_dm.dim_cg_date td
+    left join dlprd.common_dm.dim_cg_date td2
+        on td.tax_day = td2.tax_day
+            and td2.tax_year = 2024
+    where td.tax_year = 2023
+)								
+
+select t.date_ty23
+    , t.date_ty24
+    , round(coalesce(qualifies_for_outreach,0)*1) as forecast	-- multiplier is for any expected increase;
+from tax_date t								
+left join history f								
+on t.date_ty23 = f.intervention_date								
+order by 1								
+;
+
+
+-- ty24 forecast, State E-File Reject Prerecorded Calls (PRC) - 1 Days Post-Rejection;
+with history
+as								
+(								
+    select								
+    b.intervention_date								
+    ,count(case when b.qualifies = 1 then b.auth_id end) as qualifies_for_outreach
+    from (								
+    								
+        select a.*								
+        , case when a.intervention_date <= a.resolution_date or a.resolution_date is null then 1 else 0 end as qualifies								
+        from (								
+            select s.auth_id
+                , date(s.first_state_efile_rejected_date) as rejected_date
+                , date(s.first_state_efile_accepted_date) as accepted_date
+                , date(s.first_state_efile_accepted_date) as resolution_date
+                , date_diff('day',date(s.first_state_efile_rejected_date),date(s.first_state_efile_accepted_date)) as days_since_reject								
+                , date_add('day',1,date(s.first_state_efile_rejected_date)) as intervention_date								
+            from awsdatacatalog.cgan_ustax_ws.aw_fy24_state_efile s
+        ) a								
+    								
+    ) b								
+    group by 1								
+    order by 1								
+),							
+
+tax_date as (								
+    select distinct td.tax_pt_date as date_ty23
+        , td.tax_day
+        , td2.tax_pt_date as date_ty24
+    from dlprd.common_dm.dim_cg_date td
+    left join dlprd.common_dm.dim_cg_date td2
+        on td.tax_day = td2.tax_day
+            and td2.tax_year = 2024
+    where td.tax_year = 2023
+)								
+
+select t.date_ty23
+    , t.date_ty24
+    , round(coalesce(qualifies_for_outreach,0)*1) as forecast	-- multiplier is for any expected increase;
+from tax_date t								
+left join history f								
+on t.date_ty23 = f.intervention_date								
+order by 1								
+;
+
+-- actual list delivery;
+select * from dlprd.cgan_ustax_ws.ty23_outbound_call_list_to_dials ob limit 100;
+
+
+select case when (lower(ob.outreach) like '%reject%' and lower(ob.outreach) like '%state%') then 'State'
+           when lower(ob.outreach) like '%reject%' then 'Fed'
+      end as outreach_rollup
+    -- , cast(cast(ob.dt as timestamp) as date) as list_date
+    , ob.dt
+    , sum(ob.distinct_customers_in_call_list) list_size
+from dlprd.cgan_ustax_ws.ty23_outbound_call_list_to_dials ob
+where lower(ob.outreach) like '%reject%'
+group by 1,2
+order by 1,2
+;
+
+select case when (lower(ob.outreach) like '%reject%' and lower(ob.outreach) like '%state%') then 'State'
+           when lower(ob.outreach) like '%reject%' then 'Fed'
+      end as outreach_rollup
+    -- , cast(cast(ob.dt as timestamp) as date) as list_date
+    , min(ob.dt)
+    , sum(ob.distinct_customers_in_call_list) list_size
+from dlprd.cgan_ustax_ws.ty23_outbound_call_list_to_dials ob
+where lower(ob.outreach) like '%reject%'
+group by 1
+order by 1
+;

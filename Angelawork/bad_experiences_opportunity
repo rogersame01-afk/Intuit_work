@@ -1,0 +1,269 @@
+-- email opt outs;					
+drop table if exists cgan_ustax_ws.aw_email_opt_outs;					
+create table cgan_ustax_ws.aw_email_opt_outs as					
+select  lower(distinct ownerid) as lower_email					
+from dlprd.thrive_dwh.ctodev_consent_appevents b					
+WHERE ownertype = 'EMAIL' and cast(consented as varchar) = 'false'					
+and cast(applicationid as varchar) in ('3748138382259460994','8431881994700604519')--intuit and TT specific					
+and purpose in ('/marketing-notifications/*','/marketing-notifications/offers-USTB')					
+;					
+					
+-- dm opt outs;					
+drop table if exists cgan_ustax_ws.aw_dm_opt_outs;					
+create table cgan_ustax_ws.aw_dm_opt_outs as					
+select distinct mark_cust_iden					
+from dlprd.marketing_dm.dim_party_customer cv					
+where cv.mark_cust_iden <> -1					
+and cv.mail_opt_out_ind in ('Y', 'P') -- do not mail;					
+;					
+					
+-- e-file rejects;					
+drop table if exists cgan_ustax_ws.aw_a_;					
+create table cgan_ustax_ws.aw_a_ as					
+select pam.auth_id					
+, 'A. E-file Reject' as segment					
+from dlprd.tax_rpt.product_analytics_master pam					
+where pam.tax_year = 2021					
+and pam.nonffa_flag = 1					
+and pam.first_fed_efile_rejected_date is not null					
+and pam.completed_sku_rollup not like 'FREE%'					
+;					
+					
+-- w2 import errors;					
+drop table if exists cgan_ustax_ws.aw_b_;					
+create table cgan_ustax_ws.aw_b_ as					
+select distinct imp.auth_id					
+, 'B. W2 Import Error' as segment					
+from dlprd.tax_src.getdata_form_generic_raw imp					
+left join dlprd.tax_rpt.product_analytics_master pam					
+on imp.auth_id = pam.auth_id					
+and imp.tax_year = pam.tax_year					
+where imp.tax_year = 2021					
+and imp.tax_year = imp.raw_tax_year					
+and imp.doc_category = 'W2'					
+and imp.service_type in ('intuit_hosted', 'direct_import', 'screen_scraped')					
+and imp.succeeded = false					
+and imp.auth_id is not null					
+and pam.nonffa_flag = 1					
+and pam.first_completed_date is not null					
+and pam.completed_sku_rollup not like 'FREE%'					
+;					
+					
+-- low prs;					
+drop table if exists cgan_ustax_ws.aw_c_;					
+create table cgan_ustax_ws.aw_c_ as					
+select distinct pam.auth_id					
+, 'C. Low PRS' as segment					
+from dlprd.tax_rpt.product_analytics_master pam					
+where pam.tax_year = 2021					
+and pam.nonffa_flag = 1					
+and pam.prs_score between 1 and 6					
+and pam.completed_sku_rollup not like 'FREE%'					
+;					
+					
+-- required upgrade completers;					
+drop table if exists cgan_ustax_ws.aw_d_;					
+create table cgan_ustax_ws.aw_d_ as					
+select distinct mam.auth_id					
+, 'D. Required Upgrade' as segment					
+from dlprd.tax_rpt.monetization_analytics_master mam					
+left join dlprd.tax_rpt.product_analytics_master pam					
+on mam.auth_id = pam.auth_id					
+and mam.tax_year = pam.tax_year					
+where mam.tax_year = 2021					
+and mam.auth_any_required_take_flag = 1					
+and mam.first_completed_date_adj is not null					
+and pam.nonffa_flag = 1					
+and pam.completed_sku_rollup not like 'FREE%'					
+;					
+					
+-- defectors;					
+drop table if exists cgan_ustax_ws.aw_e_;					
+create table cgan_ustax_ws.aw_e_ as					
+select distinct ram.auth_id					
+, 'E. Defectors' as segment					
+from dlprd.tax_rpt.retention_analytics_master ram					
+where ram.tax_year = 2020					
+and (ram.tto_flag = 1 or lower(ram.completed_sku) like '%ttl%')					
+and ram.retained is null					
+;					
+					
+					
+-- unique counts before suppression;					
+select case when pam.auth_id is null then '1. No Auth'					
+when pam.auth_id is not null and pam.first_start_date is null then '2. Auth Not Start'					
+when pam.first_start_date is not null and pam.first_completed_date is null then '3. Start Not Complete'					
+else '4. Complete'					
+end as funnel					
+, count(distinct a.auth_id) as size					
+from (					
+select * from cgan_ustax_ws.aw_a_					
+union					
+select * from cgan_ustax_ws.aw_b_					
+union					
+select * from cgan_ustax_ws.aw_c_					
+) a					
+left join dlprd.tax_rpt.product_analytics_master pam					
+on a.auth_id = pam.auth_id					
+and pam.tax_year = 2022					
+left join dlprd.cgan_ustax_published.ty22_jan_dm_list dm					
+on a.auth_id = cast(dm.auth_id as bigint)					
+where dm.auth_id is null					
+group by 1					
+order by 1					
+;					
+					
+-- counts with suppression;			
+with segments as (					
+select * from cgan_ustax_ws.aw_a_					
+union					
+select * from cgan_ustax_ws.aw_b_					
+union					
+select * from cgan_ustax_ws.aw_c_					
+),					
+					
+risk as (					
+select distinct a.auth_id					
+from (					
+select cast(m.person as bigint) as auth_id					
+, m.atrisk_probability					
+, m.atrisk_flag					
+, m.tax_year					
+, m.timestamp					
+, row_number() over(partition by m.person, m.tax_year order by m.timestamp desc) as rnum					
+from dlprd.feature_store.data_datalake_atrisk_model m					
+) a					
+where a.rnum = 1 -- pull the most recent record for that auth_id and year;					
+and a.atrisk_flag = 1					
+and a.tax_year = 2022					
+)					
+					
+select case when risk.auth_id is not null then 1 else 0 end as atrisk_flag					
+, case when pam.auth_id is null then '1. No Auth'					
+when pam.auth_id is not null and pam.first_start_date is null then '2. Auth Not Start'					
+when pam.first_start_date is not null and pam.first_completed_date is null then '3. Start Not Complete'					
+else '4. Complete'					
+end as funnel					
+, case when be.auth_id is not null then 1 else 0 end as be_flag					
+, count(distinct s.auth_id) as size					
+from segments s					
+inner join dlprd.tax_dm.v_dim_marketing_taxcust_profile_list cv					
+on s.auth_id = cv.auth_id					
+and cv.auth_id is not null					
+and cv.addr_line_1 is not null -- include only those with addresses;					
+and cv.mark_cust_iden <> -1					
+left join cgan_ustax_ws.aw_email_opt_outs eoo					
+on cv.lower_email = eoo.lower_email					
+left join cgan_ustax_ws.aw_dm_opt_outs dmoo					
+on cv.mark_cust_iden = dmoo.mark_cust_iden					
+left join risk					
+on s.auth_id = risk.auth_id					
+left join dlprd.tax_rpt.product_analytics_master pam					
+on s.auth_id = pam.auth_id					
+and pam.tax_year = 2022					
+left join dlprd.cgan_ustax_published.ty22_jan_dm_list dm					
+on s.auth_id = cast(dm.auth_id as bigint)					
+left join (					
+-- predicted to have a bad experience in TY21;					
+select distinct a.auth_id					
+from (					
+select cast(m.person as bigint) as auth_id					
+, m.be_atrisk_probability					
+, m.be_atrisk_flag					
+, m.tax_year					
+, m.timestamp					
+, row_number() over(partition by m.person, m.tax_year order by m.timestamp desc) as rnum					
+from dlprd.feature_store.datapersist_datalake_be_atrisk_model_scores m					
+) a					
+where a.rnum = 1 -- pull the most recent record for that auth_id and year;					
+and a.be_atrisk_flag = 1					
+and a.tax_year = 2022					
+) be					
+on s.auth_id = be.auth_id					
+where eoo.lower_email is null -- suppress email opt outs;					
+and dmoo.mark_cust_iden is null -- suppress dm opt outs;					
+and dm.auth_id is null					
+group by 1,2,3					
+order by 1,2,3					
+;					
+
+-- no auth list for Zoe;
+-- counts with suppression;			
+with segments as (					
+select * from cgan_ustax_ws.aw_a_					
+union					
+select * from cgan_ustax_ws.aw_b_					
+union					
+select * from cgan_ustax_ws.aw_c_					
+),					
+					
+risk as (					
+select distinct a.auth_id					
+from (					
+select cast(m.person as bigint) as auth_id					
+, m.atrisk_probability					
+, m.atrisk_flag					
+, m.tax_year					
+, m.timestamp					
+, row_number() over(partition by m.person, m.tax_year order by m.timestamp desc) as rnum					
+from dlprd.feature_store.data_datalake_atrisk_model m					
+) a					
+where a.rnum = 1 -- pull the most recent record for that auth_id and year;					
+and a.atrisk_flag = 1					
+and a.tax_year = 2022					
+)					
+
+select distinct pam2.pseudonym_id
+from (
+    select case when risk.auth_id is not null then 1 else 0 end as atrisk_flag					
+    , case when pam.auth_id is null then '1. No Auth'					
+           when pam.auth_id is not null and pam.first_start_date is null then '2. Auth Not Start'					
+           when pam.first_start_date is not null and pam.first_completed_date is null then '3. Start Not Complete'					
+      else '4. Complete'					
+      end as funnel					
+    , case when be.auth_id is not null then 1 else 0 end as be_flag					
+    , s.auth_id	
+    from segments s					
+        inner join dlprd.tax_dm.v_dim_marketing_taxcust_profile_list cv					
+            on s.auth_id = cv.auth_id					
+            and cv.auth_id is not null					
+            and cv.addr_line_1 is not null -- include only those with addresses;					
+            and cv.mark_cust_iden <> -1					
+    left join cgan_ustax_ws.aw_email_opt_outs eoo					
+        on cv.lower_email = eoo.lower_email					
+    left join cgan_ustax_ws.aw_dm_opt_outs dmoo					
+        on cv.mark_cust_iden = dmoo.mark_cust_iden					
+    left join risk					
+        on s.auth_id = risk.auth_id					
+    left join dlprd.tax_rpt.product_analytics_master pam					
+        on s.auth_id = pam.auth_id					
+        and pam.tax_year = 2022					
+    left join dlprd.cgan_ustax_published.ty22_jan_dm_list dm					
+        on s.auth_id = cast(dm.auth_id as bigint)					
+    left join (					
+    -- predicted to defect due to a bad experience in TY21;					
+    select distinct a.auth_id					
+    from (					
+        select cast(m.person as bigint) as auth_id					
+        , m.be_atrisk_probability					
+        , m.be_atrisk_flag					
+        , m.tax_year					
+        , m.timestamp					
+        , row_number() over(partition by m.person, m.tax_year order by m.timestamp desc) as rnum					
+        from dlprd.feature_store.datapersist_datalake_be_atrisk_model_scores m					
+    ) a					
+    where a.rnum = 1 -- pull the most recent record for that auth_id and year;					
+        and a.be_atrisk_flag = 1					
+        and a.tax_year = 2022					
+    ) be					
+    on s.auth_id = be.auth_id					
+    where eoo.lower_email is null -- suppress email opt outs;					
+        and dmoo.mark_cust_iden is null -- suppress dm opt outs;					
+        and dm.auth_id is null		
+        and pam.first_neauth_date is null
+) list
+left join dlprd.tax_rpt.product_analytics_master pam2
+    on list.auth_id = pam2.auth_id
+        and pam2.tax_year = 2021 -- in order to get pseudonym_id
+where list.funnel = '1. No Auth'
+;

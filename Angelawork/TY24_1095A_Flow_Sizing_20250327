@@ -1,0 +1,291 @@
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part1_0327 as (
+-- start with all 1095-A rejects;
+with rej as (
+    select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2024
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+),
+
+-- did they view dnc;
+dnc as (
+    select c.pseudonym_id
+        , c.screen
+        , min(c.date_time) as first_dnc_view_timestamp
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024' 
+      and c.screen = 'dnc-onramp'
+    group by 1,2
+)
+
+select rej.pseudonym_id
+    , rej.first_efile_status_timestamp
+    , dnc.first_dnc_view_timestamp
+from rej
+left join dnc
+    on rej.pseudonym_id = dnc.pseudonym_id
+)
+;
+
+
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part2_0327 as (
+-- did they see standalone;
+with standalone as (
+    select c.pseudonym_id
+        , c.screen
+        , min(c.date_time) as first_standalone_view_timestamp
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024' 
+      and c.screen = 'dnc-1095-standalone'
+    group by 1,2
+)
+
+select a.pseudonym_id
+    , a.first_efile_status_timestamp
+    , a.first_dnc_view_timestamp
+    , s.first_standalone_view_timestamp
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part1_0327 a
+left join standalone s
+    on a.pseudonym_id = s.pseudonym_id
+)
+;
+
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part3_0327 as (
+-- how did they answer standalone;
+with 
+standalone_answer as (
+    select c.pseudonym_id
+        , c.screen
+        , c.ui_object_detail
+        , c.date_time as last_standalone_answer_timestamp
+        , row_number() over(partition by c.pseudonym_id order by c.date_time desc) as rnum -- to get last answer
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024' 
+        and c.ui_object_detail like 'dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices%' -- 0 yes, 1 no, 2, idk
+)
+
+select a.pseudonym_id
+    , a.first_efile_status_timestamp
+    , a.first_dnc_view_timestamp
+    , a.first_standalone_view_timestamp
+    , sa.last_standalone_answer_timestamp
+    , sa.ui_object_detail as standalone_answer
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part2_0327 a
+left join standalone_answer sa
+    on a.pseudonym_id = sa.pseudonym_id
+        and sa.rnum = 1
+)
+;
+
+select * from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part3_0327 limit 100;
+
+
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part4_0327 as (
+-- did they see gateway;
+with gateway as (
+    select c.pseudonym_id
+        , c.screen
+        , min(c.date_time) as first_gateway_view_timestamp
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024' 
+      and c.screen = 'aca-aca5-views-0'
+    group by 1,2
+)
+
+select a.*
+    , g.first_gateway_view_timestamp
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part3_0327 a
+left join gateway g
+    on a.pseudonym_id = g.pseudonym_id
+)
+;
+
+
+create table awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327 as (
+-- how did they answer gateway;
+with gateway_answer as (
+select c.pseudonym_id
+    , c.ui_object_detail
+    , c.date_time last_gateway_answer_timestamp
+    , row_number() over(partition by c.pseudonym_id order by c.date_time desc) as rnum
+from tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and c.screen = 'aca-aca5-views-0'
+    and c.ui_object_detail like 'aca-aca5-views-0-fields-choice-Has1095A-choices%'
+)
+
+select a.*
+    , ga.last_gateway_answer_timestamp
+    , ga.ui_object_detail as last_gateway_answer
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part4_0327 a
+left join gateway_answer ga
+    on a.pseudonym_id = ga.pseudonym_id
+        and ga.rnum = 1
+)
+;
+
+select * from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327 limit 100;
+
+
+-- total 1095-A rejects;
+select count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+; -- 742,169
+
+-- view D&C;
+select count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where first_dnc_view_timestamp is not null
+; -- 316,733
+
+-- saw standalone screen
+select count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where first_standalone_view_timestamp is not null
+; -- 720,013
+
+-- saw D&C or standalone
+select count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where first_dnc_view_timestamp is not null or first_standalone_view_timestamp is not null
+; -- 720,891
+
+-- standalone answer
+select standalone_answer
+    , count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where last_standalone_answer_timestamp is not null
+group by 1
+order by 1
+; 
+/*--------------------------------------------
+#	standalone_answer	_col1
+1	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-0	95,616
+2	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-1	262,390
+3	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-2	32,717
+4	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-2-choiceDetail-composite-values-1-text	1,231
+
+--------------------------------------------*/
+
+-- saw gateway screen;
+select count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where first_gateway_view_timestamp is not null
+; -- 463,199
+
+-- gateway answer;
+select last_gateway_answer
+    , count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where last_gateway_answer_timestamp is not null
+group by 1
+order by 1
+; 
+/*--------------------------------------------
+#	last_gateway_answer	_col1
+1	aca-aca5-views-0-fields-choice-Has1095A-choices-0	280,588
+2	aca-aca5-views-0-fields-choice-Has1095A-choices-1	154,868
+3	aca-aca5-views-0-fields-choice-Has1095A-choices-1-help-pointOfNeed	8,275
+
+--------------------------------------------*/
+
+-- skip dnc and do nothing else;
+select *
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where first_dnc_view_timestamp is null
+    and first_standalone_view_timestamp is null
+    and first_gateway_view_timestamp is null
+; -- 18,297
+
+-- don't see standalone or gateway;
+select *
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where first_standalone_view_timestamp is null
+    and first_gateway_view_timestamp is null
+; -- 18,551
+
+-- see standalone and don't answer
+select *
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where first_standalone_view_timestamp is not null
+    and last_standalone_answer_timestamp is null
+    and first_gateway_view_timestamp is null
+; -- 108,036
+
+-- answer yes or idk on standalone but don't get to gateway;
+select standalone_answer
+    , count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where last_standalone_answer_timestamp is not null
+    and first_gateway_view_timestamp is null
+group by 1
+order by 1
+; 
+/*
+#	standalone_answer	_col1
+1	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-0	22,742
+2	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-1	120,864
+3	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-2	8,456
+4	dnc-1095-standalone-primaryInfo-collection-values-3-choice-standalone1095-choices-2-choiceDetail-composite-values-1-text	321
+*/
+
+-- see gateway answer no;
+select last_gateway_answer
+    , count(distinct pseudonym_id)
+from awsdatacatalog.cgan_ustax_ws.aw_1095a_flow_part5_0327
+where last_gateway_answer_timestamp is not null
+group by 1
+order by 1
+; 
+/*
+#	last_gateway_answer	_col1
+1	aca-aca5-views-0-fields-choice-Has1095A-choices-0	280,588
+2	aca-aca5-views-0-fields-choice-Has1095A-choices-1	154,868
+3	aca-aca5-views-0-fields-choice-Has1095A-choices-1-help-pointOfNeed	8,275
+
+*/
+
+
+-- no fed review;
+
+-- page views;
+with click as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'S1040PERbfdi_fedreview_aca_has1095a'
+),
+
+err as (
+        select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2024
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+)
+
+select count(distinct c.pseudonym_id) as users_viewed
+    , count(distinct case when err.pseudonym_id is not null then c.pseudonym_id end) as users_rejected
+from click c
+left join err
+    on c.pseudonym_id = err.pseudonym_id
+;

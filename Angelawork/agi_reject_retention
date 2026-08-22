@@ -1,0 +1,96 @@
+with agi_rejects as (
+    select re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244' 
+        and rc.error_code = 'IND-031-04'
+        and re.tax_year = 2021
+        and re.auth_id <> -1
+),
+
+pam as (
+    select pam.auth_id
+        , pam.completed_sku_rollup
+        , pam.customer_type_rollup
+    from dlprd.tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2021
+)
+
+select case when agi_rejects.auth_id is not null then 'test' else 'baseline' end as test_control
+    , pam.completed_sku_rollup
+    , pam.customer_type_rollup
+    , count(distinct ram.customer_key) as opportunities
+    , count(distinct ram.retained) as retained
+    , sum(ram.total_revenue_nextyear) as total_revenue
+from pam
+left join agi_rejects
+    on pam.auth_id = agi_rejects.auth_id
+left join dlprd.tax_rpt.retention_analytics_master ram
+    on pam.auth_id = ram.auth_id
+        and ram.tax_year = 2021
+        and ram.tto_flag = 1
+group by 1,2,3
+order by 1,2,3
+;
+
+
+with agi as (
+    select distinct re.auth_id
+        , pam.customer_type_rollup
+        , date(pam.first_fed_efile_rejected_date) as reject_date
+        , rc.error_code
+        , rc.error_msg 
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    inner join dlprd.tax_rpt.product_analytics_master pam
+        on re.auth_id = pam.auth_id
+            and re.tax_year = pam.tax_year
+            and pam.customer_type_rollup = 'Returning'   
+    where re.filing_type_id = '244'
+        and re.tax_year = 2023
+        and re.auth_id <> -1
+        and rc.error_code in('IND-031-04','IND-032-04')
+),
+
+py_print as (
+    select distinct pam.auth_id
+    from dlprd.tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2022
+        and pam.first_print_to_mail_date_adj is not null
+),
+
+py_amend as (
+    -- successful amend prior year;
+    SELECT distinct ef.TAX_YEAR
+    , t.FILING_TYPE
+    , c.EFILE_STATUS_CODE
+    , c.EFILE_STATUS_DESCRIPTION
+    , ef.auth_id
+    FROM dlprd.tax_dm.fact_efile_status ef
+    INNER JOIN dlprd.tax_dm.dim_filing_type t
+        ON ef.filing_type_id = t.filing_type_id
+    INNER JOIN dlprd.tax_dm.DIM_EFILE_STATUS_CODE c
+        ON c.EFILE_STATUS_CODE_ID = ef.EFILE_STATUS_CODE_ID
+    INNER JOIN dlprd.tax_rpt.product_analytics_master pam
+        ON pam.auth_id = ef.AUTH_ID
+        AND pam.tax_year = ef.TAX_YEAR
+        AND pam.nonffa_flag = 1
+    WHERE 1=1
+      AND ef.TAX_YEAR = 2022
+      AND lower(t.FILING_TYPE) like '%irs-iit-amend%'
+      AND c.efile_status_code = 7 -- succeeded;
+)
+
+select case when p.auth_id is not null then 1 else 0 end as py_print_flag
+    , case when a.auth_id is not null then 1 else 0 end as py_amend_flag
+    , count(distinct agi.auth_id)
+from agi
+left join py_print p
+    on agi.auth_id = p.auth_id
+left join py_amend a
+    on agi.auth_id = a.auth_id
+group by 1,2
+order by 1,2
+;

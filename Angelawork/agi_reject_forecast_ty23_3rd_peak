@@ -1,0 +1,80 @@
+-- what is the efile reject rate this year vs last year, new vs returning
+-- what % of rejects are agi, new vs returning
+-- count of rejects 10/1-10/15 in TY22, new vs returning
+-- what % of agi rejects paid with RT
+-- what % of agi rejects are unresolved in TY23 so far
+-- how many rt agi rejects can we expect in 3rd peak
+
+
+-- what is the efile reject rate this year vs last year, new vs returning;
+select pam.tax_year
+    , pam.customer_type_rollup
+    , count(distinct case when pam.first_completed_date is not null then pam.auth_id end) as completes
+    , count(distinct case when pam.first_fed_efile_rejected_date is not null then pam.auth_id end) as rejects
+from dlprd.tax_rpt.product_analytics_master_ytd pam
+where pam.tax_year in(2022,2023)
+group by 1,2
+order by 1,2
+;
+
+
+-- what % of rejects are agi, new vs returning
+with agi_reject as (
+    select re.tax_year
+        , re.auth_id
+        , rc.error_code
+        , rc.error_msg 
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year in(2022,2023)
+        and re.auth_id <> -1
+        and rc.error_code = 'IND-031-04'
+)
+
+select pam.tax_year
+    , pam.customer_type_rollup
+    , count(distinct pam.auth_id) as total_rejects
+    , count(distinct case when agi.auth_id is not null then pam.auth_id end) as agi_rejects
+from dlprd.tax_rpt.product_analytics_master_ytd pam
+left join agi_reject agi
+    on pam.auth_id = agi.auth_id
+        and pam.tax_year = agi.tax_year
+where pam.tax_year in(2022,2023)
+    and pam.first_fed_efile_rejected_date is not null
+group by 1,2
+order by 1,2
+;
+
+
+-- count of rejects 10/1-10/15 in TY22, new vs returning
+with agi_reject as (
+    select re.tax_year
+        , re.auth_id
+        , rc.error_code
+        , rc.error_msg 
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year in(2022)
+        and re.auth_id <> -1
+        and rc.error_code = 'IND-031-04'
+)
+
+select pam.tax_year
+    , date(pam.first_fed_efile_rejected_date) as rejected_date
+    , pam.customer_type_rollup
+    , count(distinct pam.auth_id) as total_rejects
+    , count(distinct case when agi.auth_id is not null then pam.auth_id end) as agi_rejects
+from dlprd.tax_rpt.product_analytics_master pam
+left join agi_reject agi
+    on pam.auth_id = agi.auth_id
+        and pam.tax_year = agi.tax_year
+where pam.tax_year in(2022)
+    and pam.first_fed_efile_rejected_date is not null
+    and date(pam.first_fed_efile_rejected_date) between date('2023-10-01') and date('2023-10-15')
+group by 1,2,3
+order by 1,2,3
+;

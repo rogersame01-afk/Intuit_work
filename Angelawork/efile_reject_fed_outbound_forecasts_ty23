@@ -1,0 +1,168 @@
+
+-- ty23 forecast, Fed E-File Reject Live OB Calls (EPC) - 10 Days Post-Rejection;
+with history
+as								
+(								
+    select								
+    b.intervention_date								
+    ,count(case when b.qualifies = 1 then b.auth_id end) as qualifies_for_outreach
+    from (								
+    								
+        select a.*								
+        , case when a.intervention_date <= a.resolution_date or a.resolution_date is null then 1 else 0 end as qualifies								
+        from (								
+            select								
+            pam.auth_id								
+            , date(pam.first_fed_efile_rejected_date) as rejected_date								
+            , date(pam.first_fed_efile_accepted_date) as accepted_date								
+            , pam.first_print_to_mail_date_adj								
+            , date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj)) as resolution_date								
+            , date_diff('day',date(pam.first_fed_efile_rejected_date),date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj))) as days_since_reject								
+            , date_add('day',10,date(pam.first_fed_efile_rejected_date)) as intervention_date								
+            from dlprd.tax_rpt.product_analytics_master pam								
+            -- left join fraud_users_TY21 f on pam.auth_id = f.auth_id								
+            where pam.tax_year = 2022								
+            -- and pam.nonffa_flag = 1								
+            and pam.first_fed_efile_rejected_date is not null								
+            -- and fraud_account_flag != 1	
+            -- limit 100
+        ) a								
+    								
+    ) b								
+    group by 1								
+    order by 1								
+),							
+
+tax_date_new as (								
+    select distinct td.tax_pt_date
+        , td.tax_day
+        , td2.tax_pt_date as date_ty23
+    from dlprd.common_dm.dim_cg_date td
+    left join dlprd.common_dm.dim_cg_date td2
+        on td.tax_day = td2.tax_day
+            and td2.tax_year = 2023
+    where td.tax_year = 2022
+)								
+
+select t.tax_pt_date as date_ty22
+    , t.date_ty23
+    , round(coalesce(qualifies_for_outreach,0)*1) as forecast	-- multiplier is for any expected increase;
+from tax_date_new t								
+left join history f								
+on t.tax_pt_date = f.intervention_date								
+order by 1								
+;
+
+
+
+-- ty23 forecast, Fed E-File Reject Live OB Calls (EPC) - 3 Days Post-Rejection;
+with history
+as								
+(								
+    select								
+    b.intervention_date								
+    ,count(case when b.qualifies = 1 then b.auth_id end) as qualifies_for_outreach
+    from (								
+    								
+        select a.*								
+        , case when a.intervention_date <= a.resolution_date or a.resolution_date is null then 1 else 0 end as qualifies								
+        from (								
+            select								
+            pam.auth_id								
+            , date(pam.first_fed_efile_rejected_date) as rejected_date								
+            , date(pam.first_fed_efile_accepted_date) as accepted_date								
+            , pam.first_print_to_mail_date_adj								
+            , date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj)) as resolution_date								
+            , date_diff('day',date(pam.first_fed_efile_rejected_date),date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj))) as days_since_reject								
+            , date_add('day',3,date(pam.first_fed_efile_rejected_date)) as intervention_date								
+            from dlprd.tax_rpt.product_analytics_master pam								
+            -- left join fraud_users_TY21 f on pam.auth_id = f.auth_id								
+            where pam.tax_year = 2022								
+            -- and pam.nonffa_flag = 1								
+            and pam.first_fed_efile_rejected_date is not null								
+            -- and fraud_account_flag != 1	
+            -- limit 100
+        ) a								
+    								
+    ) b								
+    group by 1								
+    order by 1								
+),							
+
+tax_date_new as (								
+    select distinct td.tax_pt_date
+        , td.tax_day
+        , td2.tax_pt_date as date_ty23
+    from dlprd.common_dm.dim_cg_date td
+    left join dlprd.common_dm.dim_cg_date td2
+        on td.tax_day = td2.tax_day
+            and td2.tax_year = 2023
+    where td.tax_year = 2022
+)								
+
+select t.tax_pt_date as date_ty22
+    , t.date_ty23
+    , round(coalesce(qualifies_for_outreach,0)*1) as forecast	-- multiplier is for any expected increase;
+from tax_date_new t								
+left join history f								
+on t.tax_pt_date = f.intervention_date								
+order by 1								
+;
+
+
+
+-- ty23 forecast, Fed E-File Reject Prerecorded Calls (PRC) - 1 Day Post-Rejection;
+with history
+as								
+(								
+    select								
+    b.intervention_date								
+    ,count(case when b.qualifies = 1 then b.auth_id end) as qualifies_for_outreach
+    from (								
+    								
+        select a.*								
+        , case when a.intervention_date <= a.resolution_date or a.resolution_date is null then 1 else 0 end as qualifies								
+        from (								
+            select								
+            pam.auth_id								
+            , date(pam.first_fed_efile_rejected_date) as rejected_date								
+            , date(pam.first_fed_efile_accepted_date) as accepted_date								
+            , pam.first_print_to_mail_date_adj								
+            , date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj)) as resolution_date								
+            , date_diff('day',date(pam.first_fed_efile_rejected_date),date(coalesce(pam.first_fed_efile_accepted_date,pam.first_print_to_mail_date_adj))) as days_since_reject								
+            , date_add('day',1,date(pam.first_fed_efile_rejected_date)) as intervention_date								
+            from dlprd.tax_rpt.product_analytics_master pam								
+            -- left join fraud_users_TY21 f on pam.auth_id = f.auth_id								
+            where pam.tax_year = 2022								
+            -- and pam.nonffa_flag = 1								
+            and pam.first_fed_efile_rejected_date is not null								
+            -- and fraud_account_flag != 1	
+            -- limit 100
+        ) a								
+    								
+    ) b								
+    group by 1								
+    order by 1								
+),							
+
+tax_date_new as (								
+    select distinct td.tax_pt_date
+        , td.tax_day
+        , td2.tax_pt_date as date_ty23
+    from dlprd.common_dm.dim_cg_date td
+    left join dlprd.common_dm.dim_cg_date td2
+        on td.tax_day = td2.tax_day
+            and td2.tax_year = 2023
+    where td.tax_year = 2022
+)								
+
+select t.tax_pt_date as date_ty22
+    , t.date_ty23
+    , round(coalesce(qualifies_for_outreach,0)*1) as forecast	-- multiplier is for any expected increase;
+from tax_date_new t								
+left join history f								
+on t.tax_pt_date = f.intervention_date								
+order by 1								
+;
+
+

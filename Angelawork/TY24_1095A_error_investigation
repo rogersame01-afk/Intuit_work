@@ -1,0 +1,1527 @@
+/********************/
+
+cgan_ustax_ws.s2c_holdout_datamart_jz
+holdout_assigned_flag = 1
+
+ty24_4292
+
+
+with test as (
+    select t.recipe_name
+        , t.auth_id
+        , t.first_assignment_timestamp
+    from tax_rpt.rpt_testing_analytics_master_auth t
+    where t.test_name = 'ty24_4292'
+),
+
+aca_errors as (
+    select distinct re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244' 
+        and rc.error_code = 'F8962-070'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+)
+
+select t.recipe_name
+    , case when a.auth_id is not null then 1 else 0 end as rejected_for_1095A
+    , count(distinct t.auth_id) as users
+from test t
+left join aca_errors a
+    on t.auth_id = a.auth_id
+group by 1,2
+order by 1,2
+;
+
+
+--  ytd;
+
+with test as (
+    select t.recipe_name
+        , t.auth_id
+        , t.first_assignment_timestamp
+    from tax_rpt.rpt_testing_analytics_master_auth t
+    where t.test_name = 'ty24_4292'
+),
+
+aca_errors as (
+    select distinct re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244' 
+        and rc.error_code = 'F8962-070'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+),
+
+units as (
+    select pam.auth_id
+        , pam.first_completed_date
+    from tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2024
+),
+
+mam_payment as (
+    select auth_id
+        ,tax_year
+        ,TOTAL_REVENUE
+        ,CASE
+            WHEN rt_attach_flag=1 THEN 'refund transfer'
+            WHEN (TOTAL_REVENUE=0 AND rt_attach_flag=0) THEN 'Free'
+            ELSE 'Other'    END AS payment_method_mam       
+     from dlprd.tax_rpt.monetization_analytics_master
+     where tax_year = 2024
+)
+
+select t.recipe_name
+    , mp.payment_method_mam
+    , count(distinct t.auth_id) as users
+    , count(distinct case when a.auth_id is not null then t.auth_id end) as rejected_for_1095A
+    , count(distinct case when u.first_completed_date is not null then t.auth_id end) as completes
+    , sum(mp.TOTAL_REVENUE) as total_revenue
+from test t
+left join aca_errors a
+    on t.auth_id = a.auth_id
+left join units u
+    on t.auth_id = u.auth_id
+left join mam_payment mp
+    on t.auth_id = mp.auth_id
+group by 1,2
+order by 1,2
+;
+
+/***********************************/
+
+with err as (
+    select distinct re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+        -- and date(re.efile_status_timestamp) <= date('2024-01-24')
+),
+
+click as (
+    select distinct c.pseudonym_id
+        , c.ui_object_detail
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.topic_id = 'DEDUCTIONSHTH'
+      and c.tax_year = '2024' 
+      and c.ui_action = 'selected'
+      and c.ui_object = 'tile'
+      and lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+    --   and c.date_time <= date('2024-01-24')
+)
+
+select a.ui_object_detail
+    , count(distinct a.pseudonym_id) as responses
+    , count(distinct case when a.first_completed_date is not null then a.pseudonym_id end) as completes
+    , count(distinct case when a.rejected_due_to_F8962_070 = 1 then a.pseudonym_id end) as rejected_F8962_070
+from (
+    select c.pseudonym_id
+        , c.ui_object_detail
+        , pam.first_completed_date
+        , case when e.auth_id is not null then 1 else 0 end as rejected_due_to_F8962_070
+    from click c
+    left join dlprd.tax_rpt.product_analytics_master pam
+        on c.pseudonym_id = pam.pseudonym_id
+            and pam.tax_year = 2024
+            -- and date(pam.first_fed_efile_attempted_date) <= date('2024-01-24')
+    left join err e
+        on pam.auth_id = e.auth_id
+    -- limit 10
+) a
+group by 1
+order by 2 desc
+;
+
+
+
+    select distinct screen
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.topic_id = 'DEDUCTIONSHTH'
+      and c.tax_year = '2024' 
+      and c.ui_action = 'selected'
+      and c.ui_object = 'tile'
+      and c.ui_object_detail like 'dnc-onramp-OBAMACARE-choice%'
+    --   and c.date_time <= date('2024-01-24')
+    
+    
+-- certification screen;
+with err as (
+    select re.auth_id
+        , min(re.efile_status_timestamp) as first_1095A_reject
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2023
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+        and date(re.efile_status_timestamp) <= date('2024-01-24')
+    group by 1
+),
+
+click as (
+    select distinct c.pseudonym_id
+        , c.ui_object_detail
+        , c.date_time
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.screen = 'S1040PERbaca6'
+      and c.tax_year = '2023' 
+    --   and (c.ui_action = 'click' and c.ui_object = 'input' and lower(c.ui_object_detail) like 'chk_00')
+    --   and (c.ui_action = 'click' and c.ui_object = 'button' and lower(c.ui_object_detail) like 'continue_00')
+      and c.date_time <= date('2024-01-24')
+    --  limit 100
+)
+
+select a.ui_object_detail
+    , count(distinct a.pseudonym_id) as responses
+    , count(distinct case when a.first_completed_date is not null then a.pseudonym_id end) as completes
+    , count(distinct case when a.rejected_due_to_F8962_070 = 1 then a.pseudonym_id end) as rejected_F8962_070
+from (
+    select c.pseudonym_id
+        , c.ui_object_detail
+        , pam.first_completed_date
+        , pam.first_fed_efile_rejected_date
+        , case when e.auth_id is not null then 1 else 0 end as rejected_due_to_F8962_070
+    from click c
+    left join dlprd.tax_rpt.product_analytics_master pam
+        on c.pseudonym_id = pam.pseudonym_id
+            and pam.tax_year = 2023
+            and date(pam.first_fed_efile_attempted_date) <= date('2024-01-24')
+            and c.date_time < pam.first_fed_efile_rejected_date
+    left join err e
+        on pam.auth_id = e.auth_id
+            and e.first_1095A_reject >= c.date_time
+    where pam.first_completed_date is not null
+    -- limit 10
+) a
+group by 1
+order by 1
+;
+
+/***************************/
+
+select *
+from 
+where ty24_4232
+
+
+with test as (
+    select recipe
+        , auth_id
+        , first_assignment_timestamp
+    from cgan_ustax_ws.ty24_taxhub_new_test_performance
+    where completed_date is not null
+),
+
+err as (
+    select distinct re.auth_id
+        , min(re.efile_status_timestamp) as efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+        -- and date(re.efile_status_timestamp) <= date('2024-01-24')
+    group by 1
+)
+
+select t.recipe
+    , count(distinct t.auth_id) as users
+    , count(distinct case when err.auth_id is not null then t.auth_id end) as rejected
+from test t
+left join err
+    on t.auth_id = err.auth_id
+        and err.efile_status_timestamp >= t.first_assignment_timestamp
+group by 1
+order by 1
+;
+
+
+select recipe
+    , count(distinct auth_id)
+
+select *
+from cgan_ustax_ws.ty24_taxhub_new_test_performance
+where completed_date is not null
+limit 100
+
+group by 1
+order by 1
+;
+
+
+-- 1095-A Rejects paid with RT;
+
+with err as (
+    select distinct re.auth_id
+        , min(re.efile_status_timestamp) as efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2023
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1
+),
+
+units as (
+    select pam.auth_id
+        , pam.first_completed_date
+    from tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2023
+),
+
+mam_payment as (
+    select auth_id
+        ,tax_year
+        ,TOTAL_REVENUE
+        ,CASE
+            WHEN rt_attach_flag=1 THEN 'refund transfer'
+            WHEN (TOTAL_REVENUE=0 AND rt_attach_flag=0) THEN 'Free'
+            ELSE 'Other'    END AS payment_method_mam       
+     from dlprd.tax_rpt.monetization_analytics_master
+     where tax_year = 2023
+)
+
+select date(err.efile_status_timestamp) as date
+    , count(distinct err.auth_id)
+from err
+left join mam_payment mp
+    on err.auth_id = mp.auth_id
+where mp.payment_method_mam = 'refund transfer'
+group by 1
+order by 1
+;
+
+
+
+
+
+-- 1095-A Rejects paid with RT;
+
+with err as (
+    select distinct re.auth_id
+        , min(re.efile_status_timestamp) as efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2023
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1
+),
+
+units as (
+    select pam.auth_id
+        , pam.first_completed_date
+    from tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2023
+),
+
+mam_payment as (
+    select auth_id
+        ,tax_year
+        ,TOTAL_REVENUE
+        ,CASE
+            WHEN rt_attach_flag=1 THEN 'refund transfer'
+            WHEN (TOTAL_REVENUE=0 AND rt_attach_flag=0) THEN 'Free'
+            ELSE 'Other'    END AS payment_method_mam       
+     from dlprd.tax_rpt.monetization_analytics_master
+     where tax_year = 2023
+)
+
+select date(err.efile_status_timestamp) as date
+    , count(distinct err.auth_id)
+from err
+left join mam_payment mp
+    on err.auth_id = mp.auth_id
+where mp.payment_method_mam = 'refund transfer'
+group by 1
+order by 1
+;
+
+/*****************************************/
+
+'dnc-1095-standalone'
+
+select date(from_unixtime(c.event_ts)) as dt
+    , c.screen
+    , count(distinct c.pseudonym_id) as viewers
+from dlprd.tax_src.fact_clickstream_psd c
+where c.tax_year = '2023' 
+  and c.screen in('dnc-onramp','dnc-1095-standalone')
+  and from_unixtime(c.event_ts) <= date('2024-01-24')
+group by 1,2
+order by 1,2
+;
+    
+select date(from_unixtime(c.event_ts)) as dt
+    , c.screen
+    -- , c.ui_object_detail
+    , count(distinct c.pseudonym_id)
+from dlprd.tax_src.fact_clickstream_psd c
+where c.topic_id = 'DEDUCTIONSHTH'
+  and c.tax_year = '2023' 
+  and c.ui_action = 'selected'
+  and c.ui_object = 'tile'
+  and lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+  and c.date_time <= date('2024-01-24')
+group by 1,2
+order by 1,2
+;
+
+select date(from_unixtime(c.event_ts)) as dt
+    -- , c.screen
+    , c.ui_object_detail
+    , count(distinct c.pseudonym_id)
+from dlprd.tax_src.fact_clickstream_psd c
+where c.topic_id = 'DEDUCTIONSHTH'
+  and c.tax_year = '2023' 
+  and c.ui_action = 'selected'
+  and c.ui_object = 'tile'
+  and lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+  and c.date_time <= date('2024-01-24')
+group by 1,2
+order by 1,2
+;
+
+
+    
+-- viewers;
+select date(from_unixtime(c.event_ts)) as dt
+    , c.screen
+    , count(distinct c.pseudonym_id) as viewers
+from dlprd.tax_src.fact_clickstream_psd c
+where c.tax_year = '2024' 
+  and c.screen in('dnc-onramp','dnc-1095-standalone')
+group by 1,2
+order by 1,2
+;
+
+-- answerers;
+select date(from_unixtime(c.event_ts)) as dt
+    , c.screen
+    -- , c.ui_object_detail
+    , count(distinct c.pseudonym_id)
+from dlprd.tax_src.fact_clickstream_psd c
+where c.topic_id = 'DEDUCTIONSHTH'
+  and c.tax_year = '2024' 
+  and c.ui_action = 'selected'
+  and c.ui_object = 'tile'
+  and lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+group by 1,2
+;
+
+select date(from_unixtime(c.event_ts)) as dt
+    -- , c.screen
+    , c.ui_object_detail
+    , count(distinct c.pseudonym_id)
+from dlprd.tax_src.fact_clickstream_psd c
+where c.topic_id = 'DEDUCTIONSHTH'
+  and c.tax_year = '2024' 
+  and c.ui_action = 'selected'
+  and c.ui_object = 'tile'
+  and lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+group by 1,2
+;
+
+
+-- answerers;
+select date(from_unixtime(c.event_ts)) as dt
+    , c.screen
+    -- , c.ui_object_detail
+    , count(distinct c.pseudonym_id)
+from dlprd.tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and (lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+        or lower(c.ui_object_detail) like '%choice-standalone1095-choices%')
+group by 1,2
+;
+
+select date(from_unixtime(c.event_ts)) as dt
+    , c.ui_object_detail
+    , count(distinct c.pseudonym_id)
+from dlprd.tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and (lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+        or lower(c.ui_object_detail) like '%choice-standalone1095-choices%')
+group by 1,2
+order by 1,2
+;
+
+
+-- rejects by day ty24;
+select date(re.efile_status_timestamp) as dt
+    , count(distinct re.auth_id) as rejects
+from dlprd.tax_dm.fact_efile_reject_error re
+left join dlprd.tax_dm.dim_efile_reject_code rc
+    on re.efile_reject_code_id = rc.efile_reject_code_id
+where re.filing_type_id = '244'
+    and re.tax_year = 2024
+    and re.auth_id <> -1
+    and rc.error_code = 'F8962-070'
+    -- and date(re.efile_status_timestamp) <= date('2024-01-24')
+group by 1
+order by 1
+
+
+
+-- rejects by day ty23;
+select date(re.efile_status_timestamp) as dt
+    , count(distinct re.auth_id) as rejects
+from dlprd.tax_dm.fact_efile_reject_error re
+left join dlprd.tax_dm.dim_efile_reject_code rc
+    on re.efile_reject_code_id = rc.efile_reject_code_id
+where re.filing_type_id = '244'
+    and re.tax_year = 2023
+    and re.auth_id <> -1
+    and rc.error_code = 'F8962-070'
+    and date(re.efile_status_timestamp) <= date('2024-01-24')
+group by 1
+order by 1
+
+
+select c.ui_object_detail
+    , c.date_time
+    , c.pseudonym_id
+from dlprd.tax_src.fact_clickstream_psd c
+where c.tax_year = '2023'
+    and ui_object_detail like '%MARKETPLACEHEALTHCARE%'
+limit 100
+
+
+
+with ans as (
+    select distinct c.pseudonym_id
+        , c.ui_object_detail
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and (lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+            or lower(c.ui_object_detail) like '%choice-standalone1095-choices%')
+),
+
+err as (
+    select distinct re.auth_id
+        , min(re.efile_status_timestamp) as efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+        -- and date(re.efile_status_timestamp) <= date('2024-01-24')
+    group by 1
+)
+
+select ans.ui_object_detail
+    , case when err.auth_id is not null then 1 else 0 end as rejected
+    , count(distinct ans.pseudonym_id) as users
+from ans
+left join tax_rpt.product_analytics_master pam
+    on ans.pseudonym_id = pam.pseudonym_id
+        and pam.tax_year = 2024
+left join err
+    on pam.auth_id = err.auth_id
+group by 1,2
+order by 1,2
+;
+
+/***********************/
+
+
+SELECT tp.auth_id
+    , tp.tax_year
+     
+    -- Form 1099-INT is issued by all entities that pay interest income to investors at the end of the year.
+    , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) 1095A_part_of_return
+  
+FROM tax_src.cg_filing_taxml_payload tp
+WHERE 1=1
+    AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+    AND element_name in ('__POR__')
+    AND tp.tax_year = 2024
+    AND tp.type = 'tt'
+ 
+GROUP BY 1,2
+limit 100
+
+
+
+with rej as (
+    select distinct re.tax_year
+        , re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year in(2023,2024)
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+        and (case when re.tax_year = 2023 then date(re.efile_status_timestamp) <= date('2024-01-24') end)
+),
+
+form as (
+    SELECT tp.auth_id
+        , tp.tax_year
+         
+        -- Form 1099-INT is issued by all entities that pay interest income to investors at the end of the year.
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+      
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2023,2024)
+        and (case when tp.tax_year = 2023 then date(tp.received_date) <= date('2024-01-24') end)
+        AND tp.type = 'tt'
+     
+    GROUP BY 1,2
+)
+
+select f.tax_year
+    , f.has_1095A_part_of_return
+    , case when rej.auth_id is not null then 1 else 0 end as rejected_flag
+    , count(distinct f.auth_id) as customers
+from form f
+left join rej
+
+
+    SELECT tp.auth_id
+        , tp.tax_year
+         
+        -- Form 1099-INT is issued by all entities that pay interest income to investors at the end of the year.
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+      
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2023,2024)
+        and (case when tp.tax_year = 2023 then date(tp.received_date) <= date('2024-01-24') end)
+        AND tp.type = 'tt'
+     
+    GROUP BY 1,2
+    on f.auth_id = rej.auth_id
+        and f.tax_year = rej.tax_year
+group by 1,2,3
+order by 1,2,3
+;
+
+
+-- do people with the form for the first time this year get rejected at higher rates?;
+
+with had_form_ty23 as (
+    SELECT tp.auth_id
+        , tp.tax_year
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2023)
+        and (case when tp.tax_year = 2023 then date(tp.received_date) <= date('2024-01-24') end)
+        AND tp.type = 'tt'
+    GROUP BY 1,2
+),
+
+had_form_ty24 as (
+    SELECT tp.auth_id
+        , tp.tax_year
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2024)
+        AND tp.type = 'tt'
+    GROUP BY 1,2
+),
+
+rejected_ty24 as (
+    select distinct re.tax_year
+        , re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year in(2024)
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+)
+
+select case when b.auth_id is not null then 1 else 0 end as had_form_last_year
+    , case when c.auth_id is not null then 1 else 0 end as rejected
+    , count(distinct a.auth_id) as users
+from had_form_ty24 a
+left join had_form_ty23 b
+    on a.auth_id = b.auth_id
+        and b.has_1095A_part_of_return = '1'
+left join rejected_ty24 c
+    on a.auth_id = c.auth_id
+where a.has_1095A_part_of_return = '1'
+group by 1,2
+order by 1,2
+;
+
+
+
+
+-- do people with the form for the first time this year get rejected at higher rates?;
+
+with had_form_ty22 as (
+    SELECT tp.auth_id
+        , tp.tax_year
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2022)
+        and (case when tp.tax_year = 2022 then date(tp.received_date) <= date('2023-01-24') end)
+        AND tp.type = 'tt'
+    GROUP BY 1,2
+),
+
+had_form_ty23 as (
+    SELECT tp.auth_id
+        , tp.tax_year
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2023)
+        and (case when tp.tax_year = 2023 then date(tp.received_date) <= date('2024-01-24') end)
+        AND tp.type = 'tt'
+    GROUP BY 1,2
+),
+
+rejected_ty23 as (
+    select distinct re.tax_year
+        , re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year in(2023)
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+        and (case when re.tax_year = 2023 then date(re.efile_status_timestamp) <= date('2024-01-24') end)
+)
+
+select case when b.auth_id is not null then 1 else 0 end as had_form_last_year
+    , case when c.auth_id is not null then 1 else 0 end as rejected
+    , count(distinct a.auth_id) as users
+from had_form_ty23 a
+left join had_form_ty22 b
+    on a.auth_id = b.auth_id
+        and b.has_1095A_part_of_return = '1'
+left join rejected_ty23 c
+    on a.auth_id = c.auth_id
+where a.has_1095A_part_of_return = '1'
+group by 1,2
+order by 1,2
+;
+
+
+with form as (
+    SELECT tp.auth_id
+        , tp.tax_year
+         
+        -- Form 1099-INT is issued by all entities that pay interest income to investors at the end of the year.
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+      
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2023)
+        -- and (case when tp.tax_year = 2023 then date(tp.received_date) <= date('2024-01-24') end)
+        AND tp.type = 'tt'
+     
+    GROUP BY 1,2
+)
+
+select f.has_1095A_part_of_return
+    , count(distinct f.auth_id) as completers
+from form f
+inner join tax_rpt.product_analytics_master pam
+    on f.auth_id = pam.auth_id
+        and pam.tax_year = 2023
+        and pam.completed_flag = 1
+group by 1
+order by 1
+;
+
+/****************************/
+
+/* Reimagine AGI in FnF: Content Updates */
+
+select t.recipe_name
+    , min(t.first_assignment_timestamp) as start_date
+    , max(t.first_assignment_timestamp) as end_date
+from tax_rpt.rpt_testing_analytics_master_auth t
+where t.test_name = 'ty24_4224'
+group by 1
+order by 1
+;
+
+
+--  ytd;
+
+with test as (
+    select t.recipe_name
+        , t.auth_id
+        , t.first_assignment_timestamp
+    from tax_rpt.rpt_testing_analytics_master_auth t
+    where t.test_name = 'ty24_4224'
+),
+
+agi_errors as (
+    select distinct re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244' 
+        and rc.error_code = 'IND-031-04'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+),
+
+units as (
+    select pam.auth_id
+        , pam.first_completed_date
+    from tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2024
+),
+
+mam_payment as (
+    select auth_id
+        ,tax_year
+        ,TOTAL_REVENUE
+        ,CASE
+            WHEN rt_attach_flag=1 THEN 'refund transfer'
+            WHEN (TOTAL_REVENUE=0 AND rt_attach_flag=0) THEN 'Free'
+            ELSE 'Other'    END AS payment_method_mam       
+     from dlprd.tax_rpt.monetization_analytics_master
+     where tax_year = 2024
+)
+
+select t.recipe_name
+    , mp.payment_method_mam
+    , count(distinct t.auth_id) as users
+    , count(distinct case when a.auth_id is not null then t.auth_id end) as rejected_for_agi
+    , count(distinct case when u.first_completed_date is not null then t.auth_id end) as completes
+    , sum(mp.TOTAL_REVENUE) as total_revenue
+from test t
+left join aca_errors a
+    on t.auth_id = a.auth_id
+left join units u
+    on t.auth_id = u.auth_id
+left join mam_payment mp
+    on t.auth_id = mp.auth_id
+group by 1,2
+order by 1,2
+;
+
+
+-- with radio buttons;
+-- https://docs.google.com/document/d/15xQqVNVjiF8YyeEpTEvas1whtLqNoNQqd5MZfQnlZII/edit?tab=t.0
+
+create table awsdatacatalog.cgan_ustax_ws.aw_4224_radio_selections as (
+    with radio as (
+        select c.pseudonym_id
+            , c.screen
+            , c.ui_object_detail
+            , max(c.date_time) as max_select_event_date_time
+        from tax_src.fact_clickstream_psd c
+        where c.tax_year = '2024'
+            and c.screen = 'efverify-agi-returnAccess'
+            and c.ui_object_detail like 'return-access%'
+            and c.ui_object_detail in(
+                'return-access-can-get-it-now'
+                , 'return-access-transcript'
+                , 'return-access-prev-year-return-not-processed'
+                , 'return-access-cannot-get-it-now'
+                , 'return-access-didnt-file-last-year'
+                , 'return-access-didnt-file-but-stimulus-last-year'
+                , 'return-access-can-get-it-now-v2.0'
+                , 'return-access-transcript-v2.0'
+                , 'return-access-prev-year-return-not-processed'
+                , 'return-access-cannot-get-it-now'
+                , 'return-access-didnt-file-last-year-v2.0'
+            )
+            and date(c.date_time) between date('2024-12-20') and date('2025-01-25') -- dates when both recipes were getting traffic;
+        group by 1,2,3
+    ),
+    
+    radio_sorted as (
+        select r.pseudonym_id
+            , r.ui_object_detail
+            , r.max_select_event_date_time
+            , row_number() over(partition by r.pseudonym_id order by r.max_select_event_date_time desc) as rnum -- get their last selection
+        from radio r
+    ),
+    
+    base as (
+        select *
+        from radio_sorted rs
+        where rs.rnum = 1
+    )
+    
+    select b.pseudonym_id
+        , max(if(b.ui_object_detail = 'return-access-can-get-it-now',1,0)) as a_can_get_it_now
+        , max(if(b.ui_object_detail = 'return-access-transcript',1,0)) as b_transcript
+        , max(if(b.ui_object_detail = 'return-access-prev-year-return-not-processed',1,0)) as c_prev_return_not_processed
+        , max(if(b.ui_object_detail = 'return-access-cannot-get-it-now',1,0)) as d_cannot_get_it_now
+        , max(if(b.ui_object_detail = 'return-access-didnt-file-last-year',1,0)) as e_didnt_file_last_year
+        , max(if(b.ui_object_detail = 'return-access-didnt-file-but-stimulus-last-year',1,0)) as f_didnt_file_but_stimulus_last_year
+        
+        , max(if(b.ui_object_detail = 'return-access-can-get-it-now-v2.0',1,0)) as av2_can_get_it_now
+        , max(if(b.ui_object_detail = 'return-access-transcript-v2.0',1,0)) as bv2_transcript
+        , max(if(b.ui_object_detail = 'return-access-prev-year-return-not-processed',1,0)) as cv2_prev_return_not_processed
+        , max(if(b.ui_object_detail = 'return-access-cannot-get-it-now',1,0)) as dv2_cannot_get_it_now
+        , max(if(b.ui_object_detail = 'return-access-didnt-file-last-year-v2.0',1,0)) as ev2_didnt_file_last_year
+    from base b
+    group by 1
+)
+;
+
+select * from awsdatacatalog.cgan_ustax_ws.aw_4224_radio_selections limit 100;
+
+
+-- reject rates by radio button selection;
+
+with test as (
+    select t.recipe_name
+        , t.auth_id
+        , t.first_assignment_timestamp
+    from tax_rpt.rpt_testing_analytics_master_auth t
+    where t.test_name = 'ty24_4224'
+),
+
+agi_errors as (
+    select distinct re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244' 
+        and rc.error_code = 'IND-031-04'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+),
+
+units as (
+    select pam.auth_id
+        , pam.pseudonym_id
+        , pam.first_completed_date
+    from tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2024
+),
+
+ radio as (
+    select c.pseudonym_id
+        , c.screen
+        , c.ui_object_detail
+        , max(c.date_time) as max_select_event_date_time
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'efverify-agi-returnAccess'
+        and c.ui_object_detail like 'return-access%'
+        and c.ui_object_detail in(
+            'return-access-can-get-it-now'
+            , 'return-access-transcript'
+            , 'return-access-prev-year-return-not-processed'
+            , 'return-access-cannot-get-it-now'
+            , 'return-access-didnt-file-last-year'
+            , 'return-access-didnt-file-but-stimulus-last-year'
+            , 'return-access-can-get-it-now-v2.0'
+            , 'return-access-transcript-v2.0'
+            , 'return-access-prev-year-return-not-processed'
+            , 'return-access-cannot-get-it-now'
+            , 'return-access-didnt-file-last-year-v2.0'
+        )
+        and date(c.date_time) between date('2024-12-20') and date('2025-01-25') -- dates when both recipes were getting traffic;
+    group by 1,2,3
+),
+    
+radio_sorted as (
+    select r.pseudonym_id
+        , r.ui_object_detail
+        , r.max_select_event_date_time
+        , row_number() over(partition by r.pseudonym_id order by r.max_select_event_date_time desc) as rnum -- get their last selection
+    from radio r
+)
+
+select t.recipe_name
+    , rs.ui_object_detail
+    , count(distinct t.auth_id) as users
+    , count(distinct case when a.auth_id is not null then t.auth_id end) as rejected_for_agi
+    , count(distinct case when u.first_completed_date is not null then t.auth_id end) as completes
+from test t
+left join agi_errors a
+    on t.auth_id = a.auth_id
+left join units u
+    on t.auth_id = u.auth_id
+left join radio_sorted rs
+    on u.pseudonym_id = rs.pseudonym_id
+        and rs.rnum = 1
+group by 1,2
+order by 1,2
+;
+
+
+
+-- content edits YOY;
+
+with action as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2023'
+        and c.screen = 'efverify-agi-summary'
+        and c.ui_object_detail='taxpayer-action'
+        and date(c.date_time) <= date('2024-01-27')
+)
+
+select count(distinct a.pseudonym_id)
+from action a
+;
+
+with action as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'efverify-agi-summary'
+        and c.ui_object_detail='taxpayer-action'
+)
+
+select count(distinct a.pseudonym_id)
+from action a
+;
+
+
+-- edit agi field;
+with test as (
+    select t.recipe_name
+        , t.auth_id
+        , t.first_assignment_timestamp
+    from tax_rpt.rpt_testing_analytics_master_auth t
+    where t.test_name = 'ty24_4224'
+),
+
+agi_errors as (
+    select distinct re.auth_id
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244' 
+        and rc.error_code = 'IND-031-04'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+),
+
+units as (
+    select pam.auth_id
+        , pam.pseudonym_id
+        , pam.first_completed_date
+    from tax_rpt.product_analytics_master pam
+    where pam.tax_year = 2024
+),
+
+action as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'efverify-agi-summary'
+        and c.ui_object_detail='taxpayer-action'
+)
+
+select t.recipe_name
+    , case when ac.pseudonym_id is not null then 1 else 0 end as edited_agi
+    , count(distinct t.auth_id) as users
+    , count(distinct case when a.auth_id is not null then t.auth_id end) as rejected_for_agi
+    , count(distinct case when u.first_completed_date is not null then t.auth_id end) as completes
+from test t
+left join agi_errors a
+    on t.auth_id = a.auth_id
+left join units u
+    on t.auth_id = u.auth_id
+left join action ac
+    on u.pseudonym_id = ac.pseudonym_id
+group by 1,2
+order by 1,2
+;
+
+
+/*************************************/
+
+-- are people engaging with D&C at lower rates;
+
+-- rejected vs not;
+with form as (
+    SELECT tp.auth_id
+        , tp.tax_year
+        , MAX(CASE WHEN xpath LIKE '%1095%' THEN element_text ELSE '0' END) has_1095A_part_of_return
+    FROM tax_src.cg_filing_taxml_payload tp
+    WHERE 1=1
+        AND (xpath_partition = 'TaxReturns__USIndividualTaxReturn__US1040PER__F1095')
+        AND element_name in ('__POR__')
+        AND tp.tax_year in(2024)
+        AND tp.type = 'tt'
+    GROUP BY 1,2
+),
+
+dnc as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.ui_object_detail = 'dnc-prelude-screen-Action-Next'
+),
+
+rej as (
+    select distinct re.auth_id
+        , min(re.efile_status_timestamp) as efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1
+)
+
+select case when rej.auth_id is not null then 1 else 0 end as rejected
+    , case when dnc.pseudonym_id is not null then 1 else 0 end as dnc_engager
+    , count(distinct f.auth_id) as users
+from form f
+left join rej
+    on f.auth_id = rej.auth_id
+left join tax_rpt.product_analytics_master pam
+    on f.auth_id = pam.auth_id
+        and pam.tax_year = 2024
+left join dnc
+    on pam.pseudonym_id = dnc.pseudonym_id
+group by 1,2
+order by 1,2
+;
+
+
+-- tax hub vs not
+with dnc as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.ui_object_detail = 'dnc-prelude-screen-Action-Next'
+),
+
+rej as (
+    select distinct re.auth_id
+        , min(re.efile_status_timestamp) as efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1
+),
+
+tax_hub as (
+    select recipe
+        , auth_id
+        , first_assignment_timestamp
+    from cgan_ustax_ws.ty24_taxhub_new_test_performance
+    -- where completed_date is not null
+)
+
+select h.recipe
+    , case when rej.auth_id is not null then 1 else 0 end as rejected
+    , case when dnc.pseudonym_id is not null then 1 else 0 end as dnc_engager
+    , count(distinct h.auth_id) as users
+from tax_hub h
+left join rej
+    on h.auth_id = rej.auth_id
+left join tax_rpt.product_analytics_master pam
+    on h.auth_id = pam.auth_id
+        and pam.tax_year = 2024
+left join dnc
+    on pam.pseudonym_id = dnc.pseudonym_id
+group by 1,2,3
+order by 1,2,3
+;
+
+
+/*******************************/
+
+-- yes on standalone
+with standalone as (
+    select distinct pseudonym_id
+        , ui_object_detail
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.topic_id = 'DEDUCTIONSHTH'
+      and c.tax_year = '2024' 
+      and c.ui_action = 'selected'
+      and c.ui_object = 'tile'
+      and lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+),
+
+-- no on gateway
+gateway as (
+select c.pseudonym_id
+    , c.ui_object_detail
+from tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and c.screen = 'aca-aca5-views-0'
+    and c.ui_object_detail like 'aca-aca5-views-0-fields-choice-Has1095A-choices%'
+),
+
+err as (
+    select distinct re.auth_id	
+    from dlprd.tax_dm.fact_efile_reject_error re	
+    left join dlprd.tax_dm.dim_efile_reject_code rc	
+        on re.efile_reject_code_id = rc.efile_reject_code_id	
+        where re.filing_type_id = '244'	
+        and re.tax_year = 2024	
+        and re.auth_id <> -1	
+        and rc.error_code = 'F8962-070'	
+)
+
+select s.ui_object_detail as standalone_answer
+    , g.ui_object_detail as gateway_answer
+    , case when err.auth_id is not null then 1 else 0 end as rejected
+    , count(distinct s.pseudonym_id) as users
+from standalone s
+left join gateway g
+    on s.pseudonym_id = g.pseudonym_id
+left join tax_rpt.product_analytics_master pam
+    on s.pseudonym_id = pam.pseudonym_id
+        and pam.tax_year = 2024
+left join err
+    on pam.auth_id = err.auth_id
+group by 1,2,3
+order by 1,2,3
+;
+
+
+-- response rate after saying no on gateway;
+
+-- yes on standalone
+with standalone as (
+    select distinct pseudonym_id
+        , ui_object_detail
+    from dlprd.tax_src.fact_clickstream_psd c
+    where c.topic_id = 'DEDUCTIONSHTH'
+      and c.tax_year = '2024' 
+      and c.ui_action = 'selected'
+      and c.ui_object = 'tile'
+      and lower(c.ui_object_detail) like 'dnc-onramp-obamacare-choice%'
+),
+
+-- no on gateway
+gateway as (
+select c.pseudonym_id
+    , c.ui_object_detail
+from tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and c.screen = 'aca-aca5-views-0'
+    and c.ui_object_detail like 'aca-aca5-views-0-fields-choice-Has1095A-choices%'
+),
+
+err as (
+    select distinct re.auth_id	
+    from dlprd.tax_dm.fact_efile_reject_error re	
+    left join dlprd.tax_dm.dim_efile_reject_code rc	
+        on re.efile_reject_code_id = rc.efile_reject_code_id	
+        where re.filing_type_id = '244'	
+        and re.tax_year = 2024	
+        and re.auth_id <> -1	
+        and rc.error_code = 'F8962-070'	
+),
+
+back as (
+    select c.pseudonym_id
+        , c.ui_object_detail
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'S1040PERbaca6'
+        and c.ui_object_detail in('Continue_00','Back_00')
+
+)
+
+select s.ui_object_detail as standalone_answer
+    , g.ui_object_detail as gateway_answer
+    , b.ui_object_detail
+    , case when err.auth_id is not null then 1 else 0 end as rejected
+    , count(distinct s.pseudonym_id) as users
+from standalone s
+left join gateway g
+    on s.pseudonym_id = g.pseudonym_id
+left join back b
+    on g.pseudonym_id = b.pseudonym_id
+left join tax_rpt.product_analytics_master pam
+    on s.pseudonym_id = pam.pseudonym_id
+        and pam.tax_year = 2024
+left join err
+    on pam.auth_id = err.auth_id
+group by 1,2,3,4
+order by 1,2,3,4
+;
+
+
+/*****************************/
+
+-- fed review;
+
+/* Clicks and rejections for users who see the 1095-A Fed Review screen */
+
+/*
+"Beacons for each click and rejection data point needed:
+
+Screen ID: S1040PERbfdi_fedreview_aca_has1095a
+
+Take me to Affordable Care Act (radio button)
+ui_action: ""click""
+ui_object: ""input""
+ui_object_detail: ""radio_00:0""
+
+I don't have a Form 1095-A (radio button)
+ui_action: ""click""
+ui_object: ""input""
+ui_object_detail: ""radio_01:0""
+
+Back
+ui_action: ""click""
+ui_object: ""button""
+ui_object_detail: ""Back_00""
+
+Continue (error message when clicked without selecting a radio button)
+ui_action: ""click""
+ui_object: ""button""
+ui_object_detail: ""Continue_00"""
+*/
+
+-- total users rejected;
+
+with err as (
+    select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2024
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+)
+
+select count(distinct err.auth_id) as rejects_1095a
+from err
+;
+
+
+-- page views;
+select count(distinct c.pseudonym_id)
+from tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and c.screen = 'S1040PERbfdi_fedreview_aca_has1095a'
+;
+
+
+-- page views;
+with click as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'S1040PERbfdi_fedreview_aca_has1095a'
+),
+
+err as (
+        select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2024
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+)
+
+select count(distinct c.pseudonym_id) as users_viewed
+    , count(distinct case when err.pseudonym_id is not null then c.pseudonym_id end) as users_rejected
+from click c
+left join err
+    on c.pseudonym_id = err.pseudonym_id
+;
+
+
+-- radio button;
+with click as (
+    select c.pseudonym_id
+        , c.ui_object_detail
+        , row_number() over(partition by c.pseudonym_id order by c.date_time desc) as rnum
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'S1040PERbfdi_fedreview_aca_has1095a'
+        and c.ui_action = 'click'
+        and c.ui_object = 'input'
+        and c.ui_object_detail like 'radio%'
+),
+
+err as (
+        select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2024
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+)
+
+select c.ui_object_detail
+    , count(distinct c.pseudonym_id) as users_clicking
+    , count(distinct case when err.pseudonym_id is not null then c.pseudonym_id end) as users_rejected
+from click c
+left join err
+    on c.pseudonym_id = err.pseudonym_id
+where c.rnum = 1
+group by 1
+order by 1
+;
+
+
+-- bock or continue button;
+with click as (
+    select c.pseudonym_id
+        , c.ui_object_detail
+        , row_number() over(partition by c.pseudonym_id order by c.date_time desc) as rnum
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'S1040PERbfdi_fedreview_aca_has1095a'
+        and c.ui_action = 'click'
+        and c.ui_object = 'button'
+        and c.ui_object_detail in('Continue_00','Back_00')
+),
+
+err as (
+        select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2024
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+)
+
+select c.ui_object_detail
+    , count(distinct c.pseudonym_id) as users_clicking
+    , count(distinct case when err.pseudonym_id is not null then c.pseudonym_id end) as users_rejected
+from click c
+left join err
+    on c.pseudonym_id = err.pseudonym_id
+where c.rnum = 1
+group by 1
+order by 1
+;
+
+
+/*************************************/
+
+/*
+screen: S1040PERbaca7
+ui_action: blur
+ui_object: input
+ui_object_detail: edt_02
+*/
+
+-- how many aca rejects enter data in the form and still get rejected;
+
+with rej as (
+    select distinct re.auth_id
+        , pam.pseudonym_id
+        , min(re.efile_status_timestamp) as first_efile_status_timestamp
+    from dlprd.tax_dm.fact_efile_reject_error re
+    inner join tax_rpt.product_analytics_master pam -- tto users only;
+        on re.auth_id = pam.auth_id
+            and pam.tax_year = 2024
+    left join dlprd.tax_dm.dim_efile_reject_code rc
+        on re.efile_reject_code_id = rc.efile_reject_code_id
+    where re.filing_type_id = '244'
+        and re.tax_year = 2024
+        and re.auth_id <> -1
+        and rc.error_code = 'F8962-070'
+    group by 1,2
+),
+
+gateway_answer as (
+select c.pseudonym_id
+    , c.ui_object_detail
+    , c.date_time last_gateway_answer_timestamp
+    , row_number() over(partition by c.pseudonym_id order by c.date_time desc) as rnum
+from tax_src.fact_clickstream_psd c
+where c.tax_year = '2024'
+    and c.screen = 'aca-aca5-views-0'
+    and c.ui_object_detail like 'aca-aca5-views-0-fields-choice-Has1095A-choices%'
+),
+
+form as (
+    select distinct c.pseudonym_id
+    from tax_src.fact_clickstream_psd c
+    where c.tax_year = '2024'
+        and c.screen = 'S1040PERbaca7'
+        and c.ui_object_detail like 'edt%'
+)
+
+select ga.ui_object_detail
+    , case when f.pseudonym_id is not null then 1 else 0 end as entered_date_flag
+    , count(distinct rej.pseudonym_id)
+from rej
+left join gateway_answer ga
+    on rej.pseudonym_id = ga.pseudonym_id
+        and ga.rnum = 1
+left join form f
+    on ga.pseudonym_id = f.pseudonym_id
+        -- and f.rnum = 1
+group by 1,2
+order by 1,2
+;

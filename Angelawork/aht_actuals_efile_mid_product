@@ -1,0 +1,42 @@
+select contact_id 
+, case
+        when contact_id = '312' then 'Mid Product'
+        when contact_id = '371' then 'Efile Reject Fed CNX'
+        when contact_id = '372' then 'Efile Reject Fed Arise'
+        when contact_id = '376' then 'Efile Reject State'
+        when contact_id = '379' then 'Mid Product Mind the Gap'
+        when contact_id = '384' then 'Mid Product Mind the Price'
+        when contact_id = '389' then 'Efile Reject Fed Multi-Reject'
+        when contact_id = '395' then 'Efile Reject Fed Refund Transfer Adhoc'
+        end as campaign
+    
+    --totals
+    , count(ob.pseudonym_id) as total_records_in_call_results
+    , count(distinct ob.pseudonym_id) as distinct_customers_in_call_results   
+    , count(case when ob.ob_disposition = 'Left VM' then ob.pseudonym_id end) as total_records_left_vm   
+    , count(distinct case when ob.ob_disposition = 'Left VM' then ob.pseudonym_id end) as distinct_customers_left_vm    
+    , count(case when ob.ob_disposition = 'Spoke with customer' then ob.pseudonym_id end) as total_records_spoke_to_customer
+    , count(distinct case when ob.ob_disposition = 'Spoke with customer' then ob.pseudonym_id end) as distinct_customers_spoke_to_customer
+    
+    --rates    
+    , count(case when ob.ob_disposition = 'Left VM' then ob.pseudonym_id end)*1.0 / count(ob.pseudonym_id) * 1.0 as left_vm_percent_of_total_calls --what % of all call attempts were left VM disposition
+    , count(distinct case when ob.ob_disposition = 'Left VM' then ob.pseudonym_id end)*1.0 / count(distinct ob.pseudonym_id) * 1.0 as left_vm_percent_of_distinct_customers --what % of distinct customers had left VM disposition
+    , count(case when ob.ob_disposition = 'Spoke with customer' then ob.pseudonym_id end)*1.0 / count(ob.pseudonym_id) * 1.0 as spoke_to_customer_percent_of_total_calls --what % of all call attempts were spoke to customer disposition
+    , count(distinct case when ob.ob_disposition = 'Spoke with customer' then ob.pseudonym_id end)*1.0 / count(distinct ob.pseudonym_id) * 1.0 as spoke_to_customer_percent_of_distinct_customers --what % of distinct customers had spoke to customer disposition
+    --AHT
+    , sum(cast(SUBSTR(ob_duration, 1, 2) as int)*3600  +  cast(SUBSTR(ob_duration, 4, 2) as int)*60 + cast(SUBSTR(ob_duration, 7, 2) as int)) as total_ob_call_duration_seconds
+    , sum(case when ob.ob_disposition = 'Left VM' then cast(SUBSTR(ob_duration, 1, 2) as int)*3600  +  cast(SUBSTR(ob_duration, 4, 2) as int)*60 + cast(SUBSTR(ob_duration, 7, 2) as int) end) * 1.0
+        / count(case when ob.ob_disposition = 'Left VM' then ob.pseudonym_id end) * 1.0
+        as aht_left_vm_seconds
+    , sum(case when ob.ob_disposition = 'Spoke with customer' then cast(SUBSTR(ob_duration, 1, 2) as int)*3600  +  cast(SUBSTR(ob_duration, 4, 2) as int)*60 + cast(SUBSTR(ob_duration, 7, 2) as int) end) * 1.0
+        / count(case when ob.ob_disposition = 'Spoke with customer' then ob.pseudonym_id end) * 1.0
+        as aht_spoke_w_customer_seconds
+from dlprd.cgan_ustax_ws.ty23_ob_epc_actuals as ob
+left join dlprd.tax_rpt.product_analytics_master pam
+    on cast(ob.pseudonym_id as varchar) = cast(pam.pseudonym_id as varchar)
+        and pam.tax_year = 2023
+where ob.ob_disposition != 'did not call - backlog'
+        and ob.contact_id IN ('312','371','372','376','379','384','389','395') --isolate only outreach needed
+group by 1,2
+order by 1,2
+;
