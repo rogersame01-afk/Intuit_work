@@ -1,0 +1,12 @@
+-- DROP TABLE IF EXISTS  cgan_ustax_ws.efile_rejects_epc_day9_ty25_cjo;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day9_ty25_cjo_stg;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day9_ty25_cjo_stg2;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day9_ty25_cjo_stg3;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day9_ty25_cjo_final;
+-- DROP TABLE IF EXISTS cgan_ustax_ws.efile_rejects_epc_day9_ty25_cjo_consent;
+-- DROP TABLE IF EXISTS  cgan_ustax_ws.efile_rejects_epc_day1_ty25_cjo;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day1_ty25_cjo_stg;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day1_ty25_cjo_stg2;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day1_ty25_cjo_stg3;
+-- drop table if exists cgan_ustax_ws.efile_rejects_epc_day1_ty25_cjo_final;
+-- DROP TABLE IF EXISTS cgan_ustax_ws.efile_rejects_epc_day1_with_consent_ty25;
