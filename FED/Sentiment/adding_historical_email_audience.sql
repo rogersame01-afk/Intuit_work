@@ -1,0 +1,44 @@
+-- DROP TABLE IF EXISTS cgan_ustax_ws.nlac_ob_sentiment_contact_list_ty25_updated; 
+-- CREATE TABLE cgan_ustax_ws.nlac_ob_sentiment_contact_list_ty25_updated as 
+-- WITH base_src AS (
+--     SELECT *
+--     FROM cgan_ustax_ws.nlac_ob_sentiment_contact_list_historical_ty25
+-- ),
+-- consent_email AS (
+--     SELECT DISTINCT
+--         ownerid AS email,
+--         purpose,
+--         startdate,
+--         consented,
+--         productregion
+--     FROM thrive_dwh.ctodev_consent_appevents
+--     WHERE ownertype = 'EMAIL'
+--       AND consenttype = 'marketing-preferences'
+--       AND startdate IS NOT NULL
+--       AND consented = TRUE
+-- ),
+-- base_enriched AS (
+--     SELECT
+--         a.*,
+--         CASE WHEN c.email IS NOT NULL THEN 1 ELSE 0 END AS flag_email_consented
+--     FROM base_src a
+--     LEFT JOIN consent_email c
+--       ON LOWER(a.email_address) = LOWER(c.email)
+-- ),
+-- dedup AS (
+--     SELECT
+--         h.*,
+--         ROW_NUMBER() OVER (
+--             PARTITION BY pseudonym_id
+--             ORDER BY email_address, firstname
+--         ) AS rn_by_pseudonym,
+--         ROW_NUMBER() OVER (
+--             PARTITION BY email_address
+--             ORDER BY pseudonym_id, firstname
+--         ) AS rn_by_email
+--     FROM base_enriched h
+-- )
+-- SELECT *
+-- FROM dedup
+-- WHERE rn_by_pseudonym = 1
+--   AND rn_by_email = 1;
