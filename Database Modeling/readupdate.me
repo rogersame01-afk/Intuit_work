@@ -1,0 +1,899 @@
+Yes. Here’s a cleaner combined version that tells the Northwind project as one end-to-end story—from the **business problem** through **requirements gathering** and into the **proposed dimensional warehouse design**.
+
+# Northwind Traders — Business Use Case & Requirements Gathering
+
+## 1. Understanding the Business
+
+**Northwind Traders** is an import/export company that sells specialty food products around the world.
+
+Its day-to-day business involves:
+
+- Customers placing orders
+- Products being sold across different categories
+- Employees/sales agents managing sales
+- Suppliers providing products
+- Inventory being maintained
+- Orders being shipped to customers
+- Management monitoring business performance
+
+All of these activities generate transactional data that Northwind needs for operational and analytical reporting.
+
+---
+
+# 2. Current Data Architecture
+
+Northwind currently uses an **on-premises MySQL database** as its primary transactional system.
+
+Daily activities such as customer orders and sales transactions are stored there.
+
+The problem is that Northwind also uses the **same MySQL database for reporting and analytics**.
+
+The architecture essentially looks like:
+
+```text
+Operational Applications
+        │
+        ▼
+      MySQL
+       OLTP
+        │
+   ┌────┴────┐
+   │         │
+Transactions Reporting
+   │         │
+   └────┬────┘
+        │
+ Resource Competition
+```
+
+This means transactional and analytical workloads compete for the same resources.
+
+For example, while MySQL is processing new customer orders, an analyst might run a large query analyzing several years of sales.
+
+That analytical query can consume significant database resources and negatively affect the operational system.
+
+---
+
+# 3. Business Problems
+
+Stakeholder discussions identified four major problems.
+
+| Problem | Business Impact |
+|---|---|
+| OLTP database used for reporting | Analytical queries affect operational performance |
+| On-premises infrastructure | Limited scalability |
+| Slow reporting | Business users wait longer for insights |
+| Limited data access controls | Difficult to control who can access data/reports |
+
+Northwind has attempted to optimize the existing environment, but the company believes it has reached the point where the architecture itself needs to change.
+
+---
+
+# 4. Business Objective
+
+The primary objective is to:
+
+> **Modernize Northwind's data platform by separating transactional processing from analytical reporting and creating a scalable, secure cloud data warehouse.**
+
+The company wants to achieve:
+
+**Scalability** — Handle increasing amounts of data and analytical workloads.
+
+**Performance** — Prevent reporting queries from affecting production systems.
+
+**Faster reporting** — Give business users quicker access to information.
+
+**Security** — Improve control over who can access data.
+
+**Better analytics** — Create standardized analytical datasets that make business reporting easier.
+
+---
+
+# 5. Proposed Target Architecture
+
+Northwind plans to gradually move away from its legacy on-premises architecture and adopt **Google Cloud Platform**.
+
+The proposed architecture is:
+
+```text
+             NORTHWIND BUSINESS
+                     │
+                     ▼
+             Operational Systems
+                     │
+                     ▼
+              MySQL / Cloud SQL
+                    OLTP
+                     │
+                     │ Ingestion
+                     ▼
+              Google BigQuery
+             Analytical Warehouse
+                    OLAP
+                     │
+               Transformation
+                     │
+                     ▼
+           Dimensional Data Model
+                     │
+              ┌──────┴──────┐
+              ▼             ▼
+          Fact Tables   Dimension Tables
+              │             │
+              └──────┬──────┘
+                     ▼
+               BI / Reporting
+                     │
+          ┌──────────┼──────────┐
+          ▼          ▼          ▼
+       Sales     Inventory   Customer
+      Reports     Reports    Analytics
+```
+
+A key distinction is:
+
+**Cloud SQL/MySQL = OLTP**
+
+Used for running the business and processing transactions.
+
+**BigQuery = OLAP**
+
+Used for analytics, reporting, aggregation, and historical analysis.
+
+---
+
+# 6. Why a Dimensional Data Warehouse?
+
+Instead of simply copying the existing MySQL tables into BigQuery and asking analysts to figure them out, Northwind wants to create an **analytics-ready dimensional warehouse**.
+
+The design will loosely follow the **Kimball dimensional modeling methodology**.
+
+The goal is to transform operational data such as:
+
+```text
+Customers
+Orders
+OrderDetails
+Products
+Categories
+Suppliers
+Employees
+Shippers
+```
+
+into analytical structures such as:
+
+```text
+FACTS
+
+fact_sales
+fact_inventory
+
+
+DIMENSIONS
+
+dim_customer
+dim_product
+dim_date
+dim_employee
+dim_supplier
+dim_shipper
+dim_geography
+```
+
+This makes reporting simpler, faster, and more consistent.
+
+---
+
+# 7. Requirements Gathering
+
+Before designing those tables, we need to understand:
+
+> **What does the business actually need to analyze?**
+
+Following the Kimball approach, requirements gathering includes:
+
+```text
+Understand Business
+        ↓
+Identify Business Problems
+        ↓
+Interview Stakeholders
+        ↓
+Identify Reporting Requirements
+        ↓
+Define Business Processes
+        ↓
+Profile Source Data
+        ↓
+Define Facts & Dimensions
+        ↓
+Create Bus Matrix
+        ↓
+Establish Naming Conventions
+        ↓
+Create Conceptual Model
+```
+
+Stakeholder interviews identified **four primary reporting requirements**.
+
+---
+
+# 8. Requirement #1 — Sales Overview
+
+### Business objective
+
+Give the organization visibility into overall sales performance and help stakeholders understand customers and products.
+
+The business wants to answer questions such as:
+
+- How much revenue are we generating?
+- How many orders are customers placing?
+- Which products generate the most revenue?
+- Which categories perform best?
+- Who are our largest customers?
+- Which countries generate the most sales?
+- How are sales changing over time?
+- What discounts are being provided?
+
+### Potential KPIs
+
+```text
+Total Revenue
+Gross Sales
+Net Sales
+Order Count
+Units Sold
+Average Order Value
+Average Selling Price
+Discount Amount
+Discount %
+Revenue Growth %
+```
+
+Users should be able to analyze these metrics by:
+
+```text
+Date
+Customer
+Product
+Category
+Sales Agent
+Supplier
+Country
+Shipper
+```
+
+---
+
+# 9. Requirement #2 — Sales Agent Performance
+
+### Business objective
+
+Northwind wants greater visibility into employee/sales-agent performance so management can better **reward, support, and empower sales agents**.
+
+Questions include:
+
+- Which agents generate the most revenue?
+- How many orders does each agent manage?
+- How many customers does each agent serve?
+- What is each agent's average order value?
+- Which agents are growing sales?
+- What products/categories does each agent sell?
+- How does performance compare over time?
+
+### Potential KPIs
+
+```text
+Revenue per Agent
+Orders per Agent
+Units Sold
+Customers Served
+Average Order Value
+Revenue Growth %
+Average Discount %
+```
+
+For example:
+
+```text
+Agent        Revenue     Orders      AOV
+-----------------------------------------
+Agent A      $1.2M       4,300       $279
+Agent B      $980K       3,100       $316
+Agent C      $850K       2,900       $293
+```
+
+---
+
+# 10. Requirement #3 — Product Inventory
+
+### Business objective
+
+Give inventory management visibility into current inventory levels and improve stock management.
+
+The team needs to know:
+
+- How much inventory is available?
+- Which products are running low?
+- Which products are out of stock?
+- Which products need to be reordered?
+- How much inventory is already on order?
+- Which products are discontinued?
+- Which suppliers provide low-stock products?
+
+### Potential KPIs
+
+```text
+Units in Stock
+Units on Order
+Reorder Level
+Available Inventory
+Low-Stock Products
+Out-of-Stock Products
+Inventory Value
+```
+
+A basic business rule might be:
+
+```text
+IF units_in_stock <= reorder_level
+THEN "Reorder"
+```
+
+Inventory is important because it represents a different business process from sales.
+
+Sales measures **transactions**.
+
+Inventory measures the **state of stock at a point in time**.
+
+---
+
+# 11. Requirement #4 — Customer Reporting
+
+### Business objective
+
+Help **Customer Care and Marketing** better understand customer purchasing behavior.
+
+This can support more informed marketing campaigns and customer strategies.
+
+Questions include:
+
+- Who are our highest-value customers?
+- How frequently do customers purchase?
+- When did they last purchase?
+- What products do they purchase?
+- Which categories do they prefer?
+- What is their average order value?
+- Which customers purchase repeatedly?
+- Which customers may be becoming inactive?
+
+### Potential KPIs
+
+```text
+Customer Revenue
+Orders per Customer
+Average Order Value
+Purchase Frequency
+Last Purchase Date
+First Purchase Date
+Units Purchased
+Customer Lifetime Revenue
+Repeat Purchase Rate
+```
+
+Eventually, this could support customer segmentation such as:
+
+```text
+                    Customers
+                        │
+          ┌─────────────┼─────────────┐
+          ▼             ▼             ▼
+      High Value     Frequent       At Risk
+      Customers       Buyers       Customers
+          │             │             │
+          └─────────────┼─────────────┘
+                        ▼
+                Marketing Strategy
+```
+
+---
+
+# 12. Translating Reports Into Business Processes
+
+This is where an important Analytics Engineering decision happens.
+
+We currently have four reporting requirements:
+
+```text
+Sales Overview
+Sales Agent Performance
+Inventory
+Customer Reporting
+```
+
+But that does **not necessarily mean we need four fact tables**.
+
+Ask:
+
+> **What underlying business process generates the data?**
+
+Sales Overview, Sales Agent Performance, and Customer Reporting all primarily analyze the same underlying process:
+
+### Sales / Order Transactions
+
+One customer places an order containing products that is associated with an employee/sales agent.
+
+Therefore:
+
+```text
+Sales Overview ─────────┐
+                        │
+Sales Agent Reporting ──┼──► SALES BUSINESS PROCESS
+                        │
+Customer Reporting ─────┘
+```
+
+One well-designed sales fact table can potentially support all three.
+
+Inventory represents a separate process:
+
+```text
+Inventory Reporting ───────► INVENTORY BUSINESS PROCESS
+```
+
+So we potentially have **two major fact areas**:
+
+```text
+1. Sales
+
+2. Inventory
+```
+
+This is a key modeling insight.
+
+---
+
+# 13. Data Profiling
+
+Now that we understand what the business wants, we need to determine whether the source data can support those requirements.
+
+Potential source tables include:
+
+```text
+customers
+orders
+order_details
+products
+categories
+suppliers
+employees
+shippers
+```
+
+We profile these tables for:
+
+```text
+Row Counts
+Data Types
+Primary Keys
+Foreign Keys
+Null Values
+Duplicates
+Distinct Values
+Min/Max Dates
+Invalid Values
+Referential Integrity
+Data Distribution
+```
+
+For example, for customers:
+
+```sql
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT customer_id) AS customers,
+    COUNTIF(customer_id IS NULL) AS missing_customer_ids,
+    COUNT(DISTINCT country) AS countries
+FROM customers;
+```
+
+For orders:
+
+```sql
+SELECT
+    COUNT(*) AS total_orders,
+    COUNT(DISTINCT order_id) AS unique_orders,
+    MIN(order_date) AS first_order,
+    MAX(order_date) AS latest_order,
+    COUNTIF(customer_id IS NULL) AS missing_customers
+FROM orders;
+```
+
+The question we're trying to answer is:
+
+> **Is the source data complete, reliable, and detailed enough to support the requested analytics?**
+
+---
+
+# 14. Map Requirements to Source Data
+
+Next, connect each business requirement to the source data needed to calculate it.
+
+| Requirement | KPI / Attribute | Likely Source |
+|---|---|---|
+| Sales | Revenue | Order Details |
+| Sales | Orders | Orders |
+| Sales | Units Sold | Order Details |
+| Product | Product Revenue | Order Details + Products |
+| Product | Category | Products + Categories |
+| Sales Agent | Agent Revenue | Orders + Employees |
+| Inventory | Units in Stock | Products |
+| Inventory | Reorder Level | Products |
+| Customer | Customer Revenue | Orders + Order Details |
+| Customer | Purchase Frequency | Orders |
+| Customer | Geography | Customers |
+| Supplier | Supplier | Products + Suppliers |
+
+Now we know which operational tables are required for the warehouse.
+
+---
+
+# 15. Define the Grain
+
+Before creating a fact table, we must clearly define:
+
+> **What does one row represent?**
+
+For `fact_sales`, a good grain is:
+
+> **One row per product line item on an order.**
+
+Suppose Order `10248` contains:
+
+```text
+Order 10248
+Customer: VINET
+
+Product A       12 units
+Product B       10 units
+Product C        5 units
+```
+
+The fact table would contain:
+
+```text
+Order     Product     Quantity
+--------------------------------
+10248     Product A      12
+10248     Product B      10
+10248     Product C       5
+```
+
+This grain allows Northwind to analyze both:
+
+**Order-level performance**
+
+and
+
+**Product-level performance.**
+
+---
+
+# 16. Define Facts and Dimensions
+
+Once the grain is established, we can identify measurable facts.
+
+For sales:
+
+```text
+Quantity
+Unit Price
+Gross Sales
+Discount Amount
+Net Sales
+Freight
+```
+
+For example:
+
+```text
+Gross Sales
+= Quantity × Unit Price
+
+Discount Amount
+= Quantity × Unit Price × Discount
+
+Net Sales
+= Gross Sales - Discount Amount
+```
+
+Dimensions provide the descriptive context:
+
+```text
+Customer
+Product
+Date
+Employee
+Supplier
+Geography
+Shipper
+Category
+```
+
+---
+
+# 17. Initial Sales Star Schema
+
+The resulting sales model might look like:
+
+```text
+                        dim_customer
+                             │
+                             │
+                             ▼
+dim_product ──────────── fact_sales ─────────── dim_date
+                             │
+                             │
+                       dim_employee
+                             │
+                             │
+                       dim_shipper
+```
+
+`fact_sales` could contain:
+
+```text
+order_id
+order_line_id
+
+customer_key
+product_key
+employee_key
+date_key
+shipper_key
+
+quantity
+unit_price
+gross_sales
+discount_amount
+net_sales
+```
+
+---
+
+# 18. Inventory Model
+
+Inventory is a separate business process.
+
+A possible grain would be:
+
+> **One row per product per inventory snapshot date.**
+
+For example:
+
+```text
+fact_inventory_snapshot
+--------------------------------
+date_key
+product_key
+supplier_key
+
+units_in_stock
+units_on_order
+reorder_level
+inventory_value
+```
+
+Connected to:
+
+```text
+                 dim_date
+                    │
+                    ▼
+dim_product ─ fact_inventory ─ dim_supplier
+                    │
+                    ▼
+               dim_category
+```
+
+---
+
+# 19. Create the Kimball Bus Matrix
+
+Now we can document which dimensions are shared across business processes.
+
+| Business Process | Date | Customer | Product | Category | Employee | Supplier | Geography | Shipper |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Sales | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Inventory | ✓ |  | ✓ | ✓ |  | ✓ |  |  |
+
+The matrix helps identify **conformed dimensions**.
+
+For example, `dim_product` should mean the same thing whether someone is analyzing sales or inventory.
+
+```text
+                 dim_product
+                      │
+             ┌────────┴────────┐
+             ▼                 ▼
+        fact_sales      fact_inventory
+```
+
+This creates consistency across the warehouse.
+
+---
+
+# 20. Establish Naming Conventions
+
+Standards should be established before development grows.
+
+For example:
+
+| Object | Standard | Example |
+|---|---|---|
+| Fact | `fact_<process>` | `fact_sales` |
+| Dimension | `dim_<entity>` | `dim_customer` |
+| Surrogate Key | `<entity>_key` | `customer_key` |
+| Source ID | `<entity>_id` | `customer_id` |
+| Date | `<event>_date` | `order_date` |
+| Timestamp | `<event>_at` | `created_at` |
+| Boolean | `is_<condition>` | `is_discontinued` |
+| Amount | `<metric>_amount` | `discount_amount` |
+
+This creates a predictable and maintainable warehouse.
+
+---
+
+# 21. Conceptual Model
+
+At the end of requirements gathering, we can present a high-level conceptual model to stakeholders.
+
+```text
+                         CUSTOMER
+                            │
+                            ▼
+PRODUCT ───────────────── SALES ───────────────── DATE
+   │                        │
+   │                        ▼
+CATEGORY                 EMPLOYEE
+   │                        │
+   ▼                        ▼
+SUPPLIER                 SHIPPER
+
+
+PRODUCT ─────────────── INVENTORY ─────────────── DATE
+   │
+   ▼
+CATEGORY
+   │
+   ▼
+SUPPLIER
+```
+
+This allows business and technical stakeholders to validate the design before detailed development begins.
+
+---
+
+# 22. End-to-End Northwind Story
+
+The entire project can now be understood as one continuous process:
+
+```text
+NORTHWIND TRADERS
+Global Specialty Food Import / Export Company
+                     │
+                     ▼
+              BUSINESS PROBLEM
+                     │
+     ┌───────────────┼────────────────┐
+     ▼               ▼                ▼
+Slow Reporting   Limited Scale    Poor Access
+     │            On-Premise        Control
+     └───────────────┼────────────────┘
+                     ▼
+             BUSINESS OBJECTIVE
+
+        Modernize Data Platform
+                     │
+                     ▼
+            Move toward GCP
+                     │
+          ┌──────────┴──────────┐
+          ▼                     ▼
+      Cloud SQL              BigQuery
+        OLTP                   OLAP
+                                  │
+                                  ▼
+                       REQUIREMENT GATHERING
+                                  │
+               ┌──────────────────┼─────────────────┐
+               ▼                  ▼                 ▼
+             Sales            Inventory         Customer
+               │                  │              Analytics
+               ▼                  ▼
+          Sales Agents       Stock Management
+               │
+               └──────────────┬─────────────────────┘
+                              ▼
+                     BUSINESS PROCESSES
+                              │
+                  ┌───────────┴───────────┐
+                  ▼                       ▼
+                SALES                 INVENTORY
+                  │                       │
+                  ▼                       ▼
+             DEFINE GRAIN            DEFINE GRAIN
+                  │                       │
+                  └───────────┬───────────┘
+                              ▼
+                         BUS MATRIX
+                              │
+                              ▼
+                    FACTS + DIMENSIONS
+                              │
+                              ▼
+                 DIMENSIONAL DATA MODEL
+                              │
+                              ▼
+                           BIGQUERY
+                              │
+                              ▼
+                      BI / REPORTING
+                              │
+              ┌───────────────┼────────────────┐
+              ▼               ▼                ▼
+           Sales          Inventory         Customer
+         Analytics        Analytics         Analytics
+                              │
+                              ▼
+                    BUSINESS DECISIONS
+```
+
+## The Core Lesson
+
+The most important thing to take from this project is that an Analytics Engineer isn't simply being told:
+
+> **“Build a BigQuery data warehouse.”**
+
+The real process is:
+
+**Business:**  
+“We can't scale, reporting is slow, and analytics are affecting our operational systems.”
+
+↓
+
+**Stakeholders:**  
+“We need better sales, sales-agent, inventory, and customer reporting.”
+
+↓
+
+**Analytics Engineer:**  
+“What business processes generate those metrics?”
+
+↓
+
+**Business processes:**  
+Primarily **Sales** and **Inventory**.
+
+↓
+
+**Data requirements:**  
+“What is the grain? What are the facts? What dimensions do we need? What source tables contain them?”
+
+↓
+
+**Data modeling:**  
+Build reusable `fact_sales`, `fact_inventory`, `dim_customer`, `dim_product`, `dim_employee`, `dim_date`, etc.
+
+↓
+
+**Technology:**  
+Implement the dimensional warehouse in **BigQuery** and separate analytics from the transactional MySQL/Cloud SQL environment.
+
+↓
+
+**Business outcome:**  
+**Faster reporting + scalable analytics + consistent KPIs + better security + trusted data + better decision-making.**
+
+That is the cohesive story you want to understand—and eventually be able to explain in an Analytics Engineer interview.
