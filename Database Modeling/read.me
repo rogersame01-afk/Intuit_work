@@ -1,0 +1,417 @@
+Absolutely. From the transcript, the Northwind Traders project can be translated into a much clearer business use case + analytics engineering use case.
+
+Northwind Traders — Business Use Case
+
+1. Business Context
+
+Northwind Traders is an import/export company that sells and distributes specialty food products globally.
+
+Its core operational activities include:
+- Processing customer orders
+- Selling products across customers and geographic markets
+- Managing products and product categories
+- Working with suppliers
+- Coordinating shipments
+- Tracking sales transactions and order activity
+
+Because these activities generate transactional data every day, the company needs reliable reporting to understand sales performance, customers, products, suppliers, and operations.
+
+2. Current-State Problem
+
+Northwind's architecture relies heavily on an on-premises MySQL transactional database.
+
+The biggest architectural problem is that the same database is being used for both:
+
+OLTP workloads
+→ processing daily business transactions
+
+and
+
+Analytics/reporting workloads
+→ running large SQL queries and generating reports.
+
+This creates resource contention.
+
+For example:
+A business analyst runs a large query analyzing several years of sales by customer, product, region, and month. The query consumes significant database resources while the same MySQL instance is trying to process new customer orders.
+
+The result is slower performance for both operational applications and analytics.
+
+Core business problems
+
+Problem | Business Impact
+--- | ---
+Reporting runs against production MySQL | Analytics queries compete with transactional workloads
+On-prem infrastructure | Limited ability to scale as data and usage grow
+Large analytical queries | Slower operational database performance
+Slow reporting | Business users wait longer for insights
+Legacy architecture | More difficult and expensive to maintain
+Limited access controls | Harder to control who can access specific data
+Transaction-oriented schema | Difficult for analysts to perform business analysis
+No dedicated analytical warehouse | Reporting logic becomes fragmented and inefficient
+
+3. Business Objective
+
+The overall objective is:
+Modernize Northwind's data platform by separating operational transaction processing from analytical workloads and creating a scalable, secure cloud data warehouse for business reporting and analytics.
+
+This is more than a database migration.
+The company is trying to establish a modern OLTP → data platform → OLAP architecture.
+
+4. Target Architecture
+
+The proposed architecture would look roughly like this:
+
+                NORTHWIND OPERATIONAL SYSTEMS
+                         │
+                         ▼
+                 MySQL / Cloud SQL
+                       OLTP
+                         │
+                         │ Extract / Load
+                         ▼
+                Google Cloud Platform
+                         │
+                         ▼
+                     BigQuery
+                 Data Warehouse
+                       OLAP
+                         │
+                 Transformation
+                         │
+                         ▼
+              Dimensional Data Model
+
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+      Fact Sales     Dim Customer    Dim Product
+                         │
+                         ▼
+                    Dim Supplier
+                         │
+                         ▼
+                     Dim Date
+                         │
+                         ▼
+                   Dim Geography
+                         │
+                         ▼
+                BI / Reporting Layer
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+     Sales Reports   Dashboards    Ad Hoc Analysis
+
+One correction to the transcript: BigQuery would be the OLAP/analytical system, not the OLTP system. Cloud SQL/MySQL remains the transactional side.
+
+5. Analytics Engineering Use Case
+
+From an Analytics Engineer perspective, the use case becomes:
+Design and implement a dimensional data warehouse in BigQuery that transforms Northwind's transactional MySQL data into analytics-ready fact and dimension tables supporting scalable sales, customer, product, supplier, and operational reporting.
+
+That gives you several technical responsibilities.
+
+Source ingestion
+Move data from the operational MySQL/Cloud SQL environment into the analytical environment without putting heavy reporting workloads on production.
+
+Data transformation
+Transform normalized transactional data into business-friendly analytical datasets.
+
+For example, operational data may contain:
+Orders
+OrderDetails
+Customers
+Products
+Suppliers
+Categories
+Employees
+Shippers
+
+These aren't necessarily the structures executives want to query directly.
+
+The Analytics Engineer transforms them into something like:
+fact_sales
+fact_orders
+dim_customer
+dim_product
+dim_supplier
+dim_employee
+dim_date
+dim_geography
+dim_shipper
+
+6. Main Business Questions the Warehouse Should Answer
+
+This is where the project becomes much stronger than simply saying "I built a BigQuery warehouse."
+
+The warehouse exists to answer actual business questions.
+
+Sales Performance
+
+Leadership may want to know:
+- What is total revenue?
+- How is revenue trending MoM, QoQ, and YoY?
+- Which countries generate the most revenue?
+- Which products generate the most sales?
+- Which categories are growing or declining?
+- What is average order value?
+- How many orders are being generated?
+- Which customers account for the largest share of revenue?
+
+Possible KPIs:
+Revenue
+Order Count
+Units Sold
+Average Order Value
+Revenue Growth %
+Units per Order
+Average Selling Price
+
+7. Customer Analytics Use Case
+
+Northwind could use the warehouse to understand customer behavior.
+
+Business questions:
+- Who are our highest-value customers?
+- Which customers purchase most frequently?
+- Which customers haven't ordered recently?
+- Which countries contain our most valuable customers?
+- How much revenue does each customer generate?
+- What products do specific customer segments purchase?
+
+Potential metrics:
+Customer Revenue
+Orders per Customer
+Average Customer Order Value
+Purchase Frequency
+Last Purchase Date
+Customer Lifetime Revenue
+Repeat Purchase Rate
+
+This could eventually support RFM segmentation:
+Recency + Frequency + Monetary Value
+
+8. Product & Category Analytics
+
+Another major business use case is merchandising/product performance.
+
+Management could analyze:
+Revenue by Product
+Revenue by Category
+Units Sold
+Average Selling Price
+Discount Rate
+Product Contribution %
+Category Growth
+Top/Bottom Products
+
+For example:
+Beverages generated $X in revenue this quarter, representing 24% of company sales, but revenue declined 8% QoQ primarily because of lower sales from three high-volume products.
+
+That's the type of insight the warehouse should make easy to generate.
+
+9. Supplier Analytics
+
+Because Northwind imports specialty foods, suppliers are strategically important.
+
+The warehouse could answer:
+- Which suppliers provide our highest-selling products?
+- How much revenue is associated with each supplier?
+- Which suppliers have the broadest product portfolios?
+- Which supplier's products are growing fastest?
+- Are we overly dependent on specific suppliers?
+
+Potential KPIs:
+Revenue by Supplier
+Units Sold by Supplier
+Products per Supplier
+Supplier Revenue Contribution
+Supplier Concentration
+
+10. Geographic Analytics
+
+Since Northwind operates internationally, geography becomes another important analytical dimension.
+
+For example:
+Revenue by Country
+Orders by Country
+Customers by Country
+AOV by Country
+Revenue Growth by Region
+Product Mix by Country
+
+Management could identify:
+Germany represents 18% of revenue but grew 27% YoY, making it one of Northwind's fastest-growing markets.
+
+That can influence sales and expansion decisions.
+
+11. Shipping / Fulfillment Analytics
+
+Because products have to be shipped internationally, the data can also support operational analytics.
+
+Potential questions include:
+- How quickly are orders shipped?
+- Which shipping companies handle the most orders?
+- Where are shipping delays occurring?
+- Which countries have the longest fulfillment times?
+- How much freight cost is associated with different customers or markets?
+
+Possible KPIs:
+Average Days to Ship
+Late Shipment Rate
+Freight Cost
+Freight Cost per Order
+Orders by Shipper
+Shipping Time by Country
+
+12. Why Kimball Makes Sense Here
+
+This project is a good example of where Kimball dimensional modeling is appropriate.
+
+Northwind has relatively clear analytical business processes:
+Sales / Orders / Shipping
+
+and users frequently want to slice metrics by:
+Customer / Product / Supplier / Employee / Geography / Date.
+
+That naturally fits a star schema.
+
+For example:
+
+                     dim_customer
+                          │
+                          │
+dim_product ──────── fact_sales ─────── dim_date
+                          │
+                          │
+                    dim_employee
+                          │
+                          │
+                    dim_geography
+
+The grain could be:
+One row per order line item.
+
+Then fact_sales might contain:
+order_id
+order_line_id
+date_key
+customer_key
+product_key
+employee_key
+shipper_key
+quantity
+unit_price
+discount
+gross_sales
+discount_amount
+net_sales
+freight_allocated
+
+This makes analytical queries much easier.
+
+13. Example Business Transformation
+
+Suppose the operational system contains:
+
+Orders
+----------------
+OrderID
+CustomerID
+EmployeeID
+OrderDate
+ShipVia
+Freight
+
+OrderDetails
+----------------
+OrderID
+ProductID
+UnitPrice
+Quantity
+Discount
+
+The Analytics Engineer could transform this into:
+
+fact_sales
+--------------------------------
+order_id
+customer_key
+product_key
+employee_key
+date_key
+shipper_key
+quantity
+unit_price
+gross_sales
+discount_amount
+net_sales
+
+with calculations such as:
+
+gross_sales =
+quantity × unit_price
+
+discount_amount =
+quantity × unit_price × discount
+
+net_sales =
+gross_sales - discount_amount
+
+Now analysts don't need to repeatedly recreate the business logic.
+
+14. Data Quality Use Case
+
+Modernization should also solve trust, not just performance.
+
+The Analytics Engineer should implement checks such as:
+Order IDs cannot be null
+Customer keys must map to valid customers
+Product keys must map to valid products
+Quantity > 0
+Unit price >= 0
+Discount between 0 and 1
+Order date cannot be in the future
+fact_sales row counts reconcile to source data
+Source revenue reconciles with warehouse revenue
+
+For example:
+If MySQL reports $5.2M of sales for July, the BigQuery fact table should reconcile to the same amount according to the agreed business definition.
+
+That demonstrates that the warehouse isn't merely moving data—it is producing trusted analytical data.
+
+15. Security Use Case
+
+The transcript also identifies data access control as a business requirement.
+
+The target architecture could allow Northwind to separate access by function.
+
+For example:
+Executives
+→ Company-wide KPIs
+
+Sales
+→ Customer and sales performance
+
+Operations
+→ Orders and shipping
+
+Finance
+→ Revenue and financial metrics
+
+Analysts
+→ Detailed analytical tables
+
+This gives the company much better governance than allowing many users to directly query the production MySQL database.
+
+16. The Complete Business Story
+
+If you were explaining this project during an Analytics Engineer interview, I would frame it like this:
+
+Northwind Traders is a global specialty-food import/export company whose reporting workloads were running directly against its on-premises MySQL transactional database. As reporting volume and data grew, large analytical queries competed with production workloads, causing slow reports and degrading operational performance. The legacy infrastructure also limited scalability and made data access difficult to govern.
+
+The modernization initiative separates transactional and analytical workloads by migrating the operational database toward Google Cloud SQL and building a dedicated analytical warehouse in BigQuery. I would ingest transactional data from source systems, transform it into a Kimball-style dimensional model with sales fact tables and reusable customer, product, supplier, employee, geography, and date dimensions, and establish standardized business metrics and data-quality controls.
+
+The resulting platform would allow teams to analyze revenue, order volume, customer behavior, product and category performance, geographic trends, supplier performance, and fulfillment metrics without placing analytical load on production systems. The expected outcome is faster reporting, scalable analytics, stronger data governance, consistent KPI definitions, and a trusted analytical foundation for BI and decision-making.
+
+That is the actual analytics-engineering business use case behind the tutorial—not merely "migrate MySQL to BigQuery."
